@@ -1,0 +1,18 @@
+{
+  "name": "fantasy-wrestling-frontend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.3.0"
+  },
+  "devDependencies": {
+    "vite": "^3.0.0"
+  }
+}
