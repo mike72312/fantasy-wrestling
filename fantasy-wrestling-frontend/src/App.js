@@ -39,8 +39,8 @@ function App() {
   const [availableWrestlers, setAvailableWrestlers] = useState(availableWrestlersList); // Prepopulate the full list of available wrestlers
   const [roster, setRoster] = useState([]);
   const [points, setPoints] = useState({});
-  const [teamTotalPoints, setTeamTotalPoints] = useState(0); // Keep track of team's total points
-  const [allRosters, setAllRosters] = useState([]); // To store all team rosters
+  const [teamTotalPoints, setTeamTotalPoints] = useState(0);
+  const [allRosters, setAllRosters] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,7 +48,7 @@ function App() {
     if (storedTeam) {
       setTeam(storedTeam);
       loadRosterFromLocalStorage(storedTeam);
-      initializeWrestlerPoints(); // Initialize random points when the team logs in
+      initializeWrestlerPoints();
     }
     fetchAllRosters(); // Fetch all team rosters on initial load
   }, []);
@@ -57,7 +57,7 @@ function App() {
   const initializeWrestlerPoints = () => {
     let wrestlerPoints = {};
     availableWrestlersList.forEach((wrestler) => {
-      wrestlerPoints[wrestler] = generateRandomPoints(); // Generate random points between 0 and 100 for each wrestler
+      wrestlerPoints[wrestler] = generateRandomPoints();
     });
     setPoints(wrestlerPoints);
   };
@@ -65,20 +65,24 @@ function App() {
   const loadRosterFromLocalStorage = (teamName) => {
     const storedRoster = JSON.parse(localStorage.getItem(`roster-${teamName}`)) || [];
     setRoster(storedRoster);
-    calculateTeamTotalPoints(storedRoster); // Recalculate the total points for the team
+    calculateTeamTotalPoints(storedRoster); 
   };
 
   const fetchAllRosters = async () => {
-    const response = await fetch("http://localhost:5000/api/allRosters");
-    const data = await response.json();
-    setAllRosters(data); // Set the rosters data from the backend
+    try {
+      const response = await fetch("http://localhost:5000/api/allRosters");
+      const data = await response.json();
+      setAllRosters(data); // Set the fetched team rosters from the backend
+    } catch (error) {
+      console.error("Failed to fetch rosters:", error);
+    }
   };
 
   const handleLogin = (name) => {
     setTeam(name);
     localStorage.setItem('teamName', name);
     loadRosterFromLocalStorage(name);
-    initializeWrestlerPoints(); // Initialize random points when the team logs in
+    initializeWrestlerPoints();
   };
 
   const handleLogout = () => {
@@ -86,44 +90,37 @@ function App() {
     localStorage.removeItem(`roster-${team}`);
     setTeam(null);
     setRoster([]);
-    setAvailableWrestlers(availableWrestlersList); // Reset available wrestlers when logged out
+    setAvailableWrestlers(availableWrestlersList);
     setPoints({});
-    setTeamTotalPoints(0); // Reset team points
-    navigate('/');  // Redirect to the login page after logout
+    setTeamTotalPoints(0);
+    navigate('/');
   };
 
   const handleAddWrestler = async (wrestler) => {
     const newRoster = [...roster, wrestler];
     setRoster(newRoster);
-    localStorage.setItem(`roster-${team}`, JSON.stringify(newRoster)); // Save roster in localStorage
-
-    // Remove wrestler from available list
+    localStorage.setItem(`roster-${team}`, JSON.stringify(newRoster));
     setAvailableWrestlers(availableWrestlers.filter(w => w !== wrestler));
-
-    // Update the team's total points
     calculateTeamTotalPoints(newRoster);
   };
 
   const handleDropWrestler = async (wrestler) => {
     const newRoster = roster.filter(w => w !== wrestler);
     setRoster(newRoster);
-    localStorage.setItem(`roster-${team}`, JSON.stringify(newRoster)); // Save updated roster in localStorage
-
-    // Add wrestler back to available list
+    localStorage.setItem(`roster-${team}`, JSON.stringify(newRoster));
     setAvailableWrestlers([...availableWrestlers, wrestler]);
-
-    // Update the team's total points
     calculateTeamTotalPoints(newRoster);
   };
 
+  // New function to handle adding points
   const handleAddPoints = (wrestler) => {
-    const pointsToAdd = 10; // For simplicity, 10 points for a win
+    const pointsToAdd = 10; // Add 10 points for simplicity, can be adjusted
     setPoints((prevPoints) => ({
       ...prevPoints,
       [wrestler]: (prevPoints[wrestler] || 0) + pointsToAdd
     }));
 
-    // Recalculate total team points
+    // Recalculate total points for the team
     const newRoster = [...roster, wrestler];
     calculateTeamTotalPoints(newRoster);
   };
@@ -137,26 +134,36 @@ function App() {
     <div className="container">
       {team && <Navbar team={team} onLogout={handleLogout} />}
       <Routes>
-        <Route
-          path="/"
-          element={team ? <RosterPage roster={roster} onDropWrestler={handleDropWrestler} onAddPoints={handleAddPoints} teamTotalPoints={teamTotalPoints} points={points} /> : <LoginPage onLogin={handleLogin} />}
-        />
-        <Route
-          path="/available-wrestlers"
-          element={
-            team ? (
-              <AvailableWrestlers
-                wrestlers={availableWrestlers.filter(w => !roster.includes(w))} // Exclude wrestlers already in roster
-                onAddWrestler={handleAddWrestler}
-              />
-            ) : (
-              <LoginPage onLogin={handleLogin} />
-            )
-          }
-        />
+        <Route path="/" element={team ? <RosterPage roster={roster} onDropWrestler={handleDropWrestler} onAddPoints={handleAddPoints} teamTotalPoints={teamTotalPoints} points={points} /> : <LoginPage onLogin={handleLogin} />} />
+        <Route path="/available-wrestlers" element={team ? <AvailableWrestlers wrestlers={availableWrestlers.filter(w => !roster.includes(w))} onAddWrestler={handleAddWrestler} /> : <LoginPage onLogin={handleLogin} />} />
         <Route path="/all-rosters" element={<AllRostersPage allRosters={allRosters} />} />
         <Route path="/standings" element={<StandingsPage />} />
       </Routes>
+    </div>
+  );
+}
+
+// All Team Rosters Page
+function AllRostersPage({ allRosters }) {
+  return (
+    <div className="container">
+      <h2>All Team Rosters</h2>
+      {allRosters.length === 0 ? (
+        <p>No team rosters available.</p>
+      ) : (
+        <ul>
+          {allRosters.map((team) => (
+            <li key={team.team}>
+              <h3>{team.team}'s Roster</h3>
+              <ul>
+                {team.roster.map((wrestler) => (
+                  <li key={wrestler}>{wrestler}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -228,27 +235,6 @@ function AvailableWrestlers({ wrestlers, onAddWrestler }) {
         </ul>
       )}
       <Link to="/">Go to Your Roster</Link>
-    </div>
-  );
-}
-
-// All Team Rosters Page
-function AllRostersPage({ allRosters }) {
-  return (
-    <div className="container">
-      <h2>All Team Rosters</h2>
-      <ul>
-        {allRosters.map((team) => (
-          <li key={team.team}>
-            <h3>{team.team}'s Roster</h3>
-            <ul>
-              {team.roster.map((wrestler) => (
-                <li key={wrestler}>{wrestler}</li>
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
