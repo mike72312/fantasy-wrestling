@@ -1,70 +1,110 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const port = 5000;
 
+// Enable CORS for frontend access
 app.use(cors());
+
+// Middleware to parse incoming JSON requests
 app.use(express.json());
 
-// Example data for rosters
-let availableWrestlers = [
-  { id: 1, name: "John Cena" },
-  { id: 2, name: "Roman Reigns" },
-  { id: 3, name: "Becky Lynch" },
-  { id: 4, name: "Seth Rollins" }
-];
-
+// Sample in-memory data for teams and wrestlers
 let teams = {
-  "Team A": ["John Cena", "Roman Reigns"],
-  "Team B": ["Becky Lynch", "Seth Rollins"]
+  Mike: {
+    roster: ["AJ Styles", "Seth Rollins", "Finn Bálor"],
+    totalPoints: 0
+  },
+  Jon: {
+    roster: ["Rhea Ripley", "Liv Morgan", "Sami Zayn"],
+    totalPoints: 0
+  },
+  Buddy: {
+    roster: ["CM Punk", "Rey Mysterio", "Kofi Kingston"],
+    totalPoints: 0
+  },
+  Sully: {
+    roster: ["Logan Paul", "Tyler Bate", "Xavier Woods"],
+    totalPoints: 0
+  }
 };
 
-// Endpoint to get available wrestlers
+let wrestlers = {
+  "AJ Styles": {
+    points: 0
+  },
+  "Seth Rollins": {
+    points: 0
+  },
+  "Finn Bálor": {
+    points: 0
+  },
+  "Rhea Ripley": {
+    points: 0
+  },
+  "Liv Morgan": {
+    points: 0
+  },
+  "Sami Zayn": {
+    points: 0
+  },
+  "CM Punk": {
+    points: 0
+  },
+  "Rey Mysterio": {
+    points: 0
+  },
+  "Kofi Kingston": {
+    points: 0
+  },
+  "Logan Paul": {
+    points: 0
+  },
+  "Tyler Bate": {
+    points: 0
+  },
+  "Xavier Woods": {
+    points: 0
+  }
+};
+
+// Endpoint to get the list of all available wrestlers
 app.get("/api/availableWrestlers", (req, res) => {
-  const usedWrestlers = Object.values(teams).flat();
-  const available = availableWrestlers.filter(
-    (wrestler) => !usedWrestlers.includes(wrestler.name)
+  const available = Object.keys(wrestlers).filter(
+    (wrestler) => !Object.values(teams).some((team) => team.roster.includes(wrestler))
   );
   res.json(available);
 });
 
-// Endpoint to get a team's roster
-app.get("/api/roster/:team", (req, res) => {
-  const teamName = req.params.team;
-  const roster = teams[teamName] || [];
-  res.json(roster);
+// Endpoint to get all team rosters
+app.get("/api/allRosters", (req, res) => {
+  const allRosters = Object.keys(teams).map((teamName) => ({
+    team: teamName,
+    roster: teams[teamName].roster
+  }));
+  res.json(allRosters);
 });
 
-// Endpoint to add a wrestler to a team
-app.post("/api/addWrestler", (req, res) => {
-  const { team, wrestler } = req.body;
-  if (!teams[team]) {
-    teams[team] = [];
-  }
-  if (!teams[team].includes(wrestler)) {
-    teams[team].push(wrestler);
-    res.status(200).send("Wrestler added!");
-  } else {
-    res.status(400).send("Wrestler already on the team.");
-  }
-});
+// Endpoint to add points to a wrestler's score
+app.post("/api/addPoints", (req, res) => {
+  const { wrestler, points } = req.body;
 
-// Endpoint to drop a wrestler from a team
-app.post("/api/dropWrestler", (req, res) => {
-  const { team, wrestler } = req.body;
-  if (teams[team]) {
-    const index = teams[team].indexOf(wrestler);
-    if (index !== -1) {
-      teams[team].splice(index, 1);
-      res.status(200).send("Wrestler dropped!");
-    } else {
-      res.status(400).send("Wrestler not found on the team.");
+  if (!wrestlers[wrestler]) {
+    return res.status(404).json({ error: "Wrestler not found" });
+  }
+
+  wrestlers[wrestler].points += points;
+
+  for (let teamName in teams) {
+    if (teams[teamName].roster.includes(wrestler)) {
+      teams[teamName].totalPoints += points;
     }
-  } else {
-    res.status(400).send("Team not found.");
   }
+
+  res.json({ message: "Points added successfully" });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
