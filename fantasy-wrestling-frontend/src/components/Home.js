@@ -2,49 +2,88 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const Home = () => {
-  const [teamName, setTeamName] = useState('');
   const [roster, setRoster] = useState([]);
+  const [availableWrestlers, setAvailableWrestlers] = useState([]);
+  const teamName = localStorage.getItem('teamName');  // Get the team name from localStorage
 
-  // UseEffect to retrieve logged-in team name from localStorage
   useEffect(() => {
-    const storedTeamName = localStorage.getItem('teamName');
-    if (storedTeamName) {
-      setTeamName(storedTeamName);
-    }
-
-    // Fetch roster based on the logged-in team name
-    if (storedTeamName) {
+    if (teamName) {
+      // Fetch the team roster
       axios
-        .get(`http://localhost:5000/api/roster/${storedTeamName}`)
+        .get(`http://localhost:5000/api/roster/${teamName}`)
         .then((response) => {
-          setRoster(response.data);  // Set the team's roster
+          setRoster(response.data);  // Set the roster data
         })
         .catch((error) => {
-          console.error("Error fetching roster:", error);
+          console.error("Error fetching team roster:", error);
+          alert("There was an error fetching the team roster.");
         });
+
+      // Fetch the available wrestlers
+      axios
+        .get("http://localhost:5000/api/availableWrestlers")
+        .then((response) => {
+          setAvailableWrestlers(response.data);  // Set available wrestlers
+        })
+        .catch((error) => {
+          console.error("Error fetching available wrestlers:", error);
+          alert("There was an error fetching available wrestlers.");
+        });
+    } else {
+      alert("Please log in to view your team roster.");
     }
-  }, []);
+  }, [teamName]);
+
+  const handleDropWrestler = (wrestlerName) => {
+    const teamName = localStorage.getItem('teamName');
+
+    if (!teamName) {
+      alert("You need to be logged in to drop a wrestler.");
+      return;
+    }
+
+    axios
+      .post("http://localhost:5000/api/dropWrestler", {
+        teamName: teamName,
+        wrestlerName: wrestlerName
+      })
+      .then((response) => {
+        alert(response.data.message);
+        // Update the UI by removing the dropped wrestler
+        setRoster((prevRoster) =>
+          prevRoster.filter((wrestler) => wrestler !== wrestlerName)
+        );
+        // Add the dropped wrestler back to the available pool
+        setAvailableWrestlers((prevAvailable) => [
+          ...prevAvailable,
+          wrestlerName
+        ]);
+      })
+      .catch((error) => {
+        console.error("Error dropping wrestler:", error);
+        alert("There was an error dropping the wrestler.");
+      });
+  };
 
   return (
-    <div>
-      <h2>Welcome to the Fantasy Wrestling League!</h2>
-      {teamName ? (
-        <>
-          <h3>You are logged in as: {teamName}</h3>
-          <h4>Your Roster:</h4>
-          <ul>
-            {roster.length === 0 ? (
-              <li>Your roster is empty.</li>
-            ) : (
-              roster.map((wrestler, index) => (
-                <li key={index}>{wrestler}</li>
-              ))
-            )}
-          </ul>
-        </>
-      ) : (
-        <p>Please log in to see your team and roster.</p>
-      )}
+    <div className="container">
+      <h2>Your Roster</h2>
+      <div className="roster-list">
+        {roster.length === 0 ? (
+          <p className="empty-roster">Your roster is empty.</p>
+        ) : (
+          roster.map((wrestler, index) => (
+            <div className="card" key={index}>
+              <div className="card-content">
+                <h4>{wrestler}</h4>
+                <button onClick={() => handleDropWrestler(wrestler)}>
+                  Drop
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };

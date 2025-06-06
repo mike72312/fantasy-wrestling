@@ -1,34 +1,109 @@
-/* Global Styles for Body */
+/* Global Styles */
 body {
   font-family: 'Arial', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f9f9f9;
+  background-color: #f4f4f4;
   color: #333;
 }
 
-/* Main Container with max width */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
 
-/* Card-like layout for content (e.g., wrestlers, teams) */
+/* Card Layout for Each Wrestler */
 .card {
   background-color: white;
   padding: 15px;
   margin: 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   transition: box-shadow 0.3s ease;
 }
 
 .card:hover {
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Buttons */
+.card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-content h4 {
+  margin: 0;
+}
+
+.card-content button {
+  padding: 8px 15px;
+  background-color: #f44336;  /* Red for Drop button */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.card-content button:hover {
+  background-color: #e41c1c;
+  transform: scale(1.05);
+}
+
+/* Flexbox Grid for roster list */
+.roster-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+}
+
+/* Styling for empty roster message */
+.empty-roster {
+  font-size: 18px;
+  color: #888;
+  text-align: center;
+}
+
+/* Header Styling */
+h2 {
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* Flexbox for available wrestlers page */
+.wrestler-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: flex-start;
+}
+
+/* Available Wrestlers Page Styling */
+ul.wrestlers-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+ul.wrestlers-list li {
+  background-color: #fff;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+ul.wrestlers-list li:hover {
+  background-color: #f0f0f0;
+}
+
+/* Button Styling */
 button {
   padding: 8px 12px;
   font-size: 16px;
@@ -41,48 +116,6 @@ button {
 button:hover {
   background-color: #f1f1f1;
   transform: scale(1.05);
-}
-
-/* Specific Button Styles */
-.add-button {
-  background-color: #4CAF50;  /* Green for Add button */
-  color: white;
-}
-
-.drop-button {
-  background-color: #f44336;  /* Red for Drop button */
-  color: white;
-}
-
-.add-button:hover {
-  background-color: #45a049;
-}
-
-.drop-button:hover {
-  background-color: #e41c1c;
-}
-
-/* Flexbox grid for Available Wrestlers */
-.wrestler-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: flex-start;
-}
-
-/* Card content styling */
-.card-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-content h4 {
-  margin: 0;
-}
-
-.card-content button {
-  margin-left: 10px;
 }
 
 /* Navbar Styling */
