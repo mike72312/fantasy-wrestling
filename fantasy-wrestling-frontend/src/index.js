@@ -1,14 +1,11 @@
-import React from "react";
-import ReactDOM from "react-dom";
-import App from "./App";
-import { BrowserRouter as Router } from "react-router-dom";  // Import Router
+import React from 'react';
+import ReactDOM from 'react-dom/client'; // Updated import for React 18+
+import App from './App'; // Import your App component
 
-import "./index.css";
-
-// Wrap App component with Router
-ReactDOM.render(
-  <Router>
-    <App />
-  </Router>,
-  document.getElementById("root")
+// Create a root element and render your app component into the DOM
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App /> {/* No need for BrowserRouter here */}
+  </React.StrictMode>
 );
