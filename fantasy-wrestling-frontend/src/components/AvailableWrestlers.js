@@ -35,41 +35,34 @@ const AvailableWrestlers = () => {
       });
   };
 
-  const getRowColor = (points) => {
+  const getCardColor = (points) => {
     if (points >= 30) return "#d4edda"; // green
     if (points >= 10) return "#fff3cd"; // yellow
     return "#f8d7da"; // red
   };
 
-  const cellStyle = {
-    border: "1px solid #ccc",
-    padding: "8px",
-    textAlign: "left",
-  };
-
   return (
     <div style={{ padding: "20px" }}>
       <h2>Available Wrestlers</h2>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={cellStyle}>Wrestler</th>
-            <th style={cellStyle}>Points</th>
-            <th style={cellStyle}>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {wrestlers.map((w, idx) => (
-            <tr key={idx} style={{ backgroundColor: getRowColor(w.points) }}>
-              <td style={cellStyle}>{w.wrestler_name}</td>
-              <td style={cellStyle}>{w.points}</td>
-              <td style={cellStyle}>
-                <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+        {wrestlers.map((wrestler, idx) => (
+          <div
+            key={idx}
+            style={{
+              backgroundColor: getCardColor(wrestler.points),
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              padding: "16px",
+              width: "200px",
+              boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px 0" }}>{wrestler.wrestler_name}</h3>
+            <p style={{ margin: "0 0 12px 0" }}>Points: {wrestler.points}</p>
+            <button onClick={() => handleAdd(wrestler.wrestler_name)}>Add</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
