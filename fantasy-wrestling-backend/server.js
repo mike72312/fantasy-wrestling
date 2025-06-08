@@ -160,23 +160,6 @@ app.get("/api/roster/:teamName", async (req, res) => {
   }
 });
 
-// ✅ Get all add/drop transactions
-app.get("/api/transactions", async (req, res) => {
-  try {
-    res.setHeader("Access-Control-Allow-Origin", "*"); // ✅ Force this header
-    const query = `
-      SELECT wrestler_name, team_name, action, timestamp
-      FROM transactions
-      ORDER BY timestamp DESC;
-    `;
-    const result = await pool.query(query);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching transactions:", err);
-    res.status(500).send("Error fetching transactions");
-  }
-});
-
 // ✅ Start the server
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);
