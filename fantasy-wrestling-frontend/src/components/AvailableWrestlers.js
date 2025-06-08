@@ -17,7 +17,7 @@ const AvailableWrestlers = () => {
     const teamName = localStorage.getItem("teamName");
     if (!teamName) return alert("No team selected.");
 
-    fetch("https://your-backend-name.onrender.com/api/addWrestler", {
+    fetch("https://wrestling-backend.onrender.com/api/availableWrestlers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teamName, wrestlerName }),
