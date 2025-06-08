@@ -30,12 +30,12 @@ const pool = new Pool({
 app.get("/api/availableWrestlers", async (req, res) => {
   try {
     const query = `
-      SELECT wrestler_name, points
+      SELECT wrestler_name
       FROM wrestlers
       WHERE team_id IS NULL;
     `;
     const result = await pool.query(query);
-    res.json(result.rows);
+    res.json(result.rows.map(row => row.wrestler_name));
   } catch (err) {
     console.error("Error fetching available wrestlers:", err);
     res.status(500).send("Error fetching available wrestlers.");
@@ -84,6 +84,11 @@ app.post("/api/addWrestler", async (req, res) => {
       [teamId, wrestlerName]
     );
 
+    await pool.query(
+      `INSERT INTO transactions (wrestler_name, team_name, action) VALUES ($1, $2, 'add')`,
+      [wrestlerName, teamName]
+    );
+
     res.json({ message: `Wrestler ${wrestlerName} added to team ${teamName}.` });
   } catch (err) {
     console.error("Error adding wrestler:", err);
@@ -118,6 +123,11 @@ app.post("/api/dropWrestler", async (req, res) => {
       return res.status(400).send("Wrestler not found on this team's roster.");
     }
 
+    await pool.query(
+      `INSERT INTO transactions (wrestler_name, team_name, action) VALUES ($1, $2, 'drop')`,
+      [wrestlerName, teamName]
+    );
+
     res.json({ message: `Wrestler ${wrestlerName} dropped from team ${teamName}.` });
   } catch (err) {
     console.error("Error dropping wrestler:", err);
@@ -147,6 +157,23 @@ app.get("/api/roster/:teamName", async (req, res) => {
   } catch (err) {
     console.error("Error fetching team roster:", err);
     res.status(500).send("Error fetching team roster.");
+  }
+});
+
+// ✅ Get all add/drop transactions
+app.get("/api/transactions", async (req, res) => {
+  try {
+    res.setHeader("Access-Control-Allow-Origin", "*"); // ✅ Force this header
+    const query = `
+      SELECT wrestler_name, team_name, action, timestamp
+      FROM transactions
+      ORDER BY timestamp DESC;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    res.status(500).send("Error fetching transactions");
   }
 });
 
