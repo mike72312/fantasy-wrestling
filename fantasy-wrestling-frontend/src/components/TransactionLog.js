@@ -4,7 +4,7 @@ const TransactionLog = () => {
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/transactionlog")
+    fetch("https://your-backend-name.onrender.com/api/transactions")
       .then(res => res.json())
       .then(data => setTransactions(data))
       .catch(err => console.error("Error fetching transactions:", err));
