@@ -6,6 +6,11 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+//test
+app.get("/test", (req, res) => {
+  res.json({ message: "Test route is working" });
+});
+
 // ✅ CORS Configuration (Allow frontend on Render)
 app.use(cors({
   origin: "*",
