@@ -1,186 +1,148 @@
 const express = require("express");
 const cors = require("cors");
-const mysql = require("mysql2"); // Import mysql2
+const { Pool } = require("pg");
+require("dotenv").config();
+
 const app = express();
-const port = 5000;
+const port = process.env.PORT || 5000;
 
-// Enable CORS for frontend access
 app.use(cors());
-
-// Middleware to parse incoming JSON requests
 app.use(express.json());
 
-// MySQL database connection
-const db = mysql.createConnection({
-  host: "localhost",        // Your MySQL server hostname
-  user: "root",             // Your MySQL username
-  password: "mike723",     // Your MySQL password
-  database: "fantasy_wrestling"  // Your MySQL database name
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error("Error connecting to the database: ", err);
-    return;
+// PostgreSQL connection using Supabase
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false // Required for Supabase
   }
-  console.log("Connected to MySQL database.");
 });
 
-// Endpoint to get the list of all available wrestlers (those not on a team)
-app.get("/api/availableWrestlers", (req, res) => {
-  const query = `
-    SELECT w.wrestler_name
-    FROM wrestlers w
-    LEFT JOIN teams t ON w.team_id = t.id
-    WHERE w.team_id IS NULL;
-  `;
-  
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error("Error fetching available wrestlers:", err);
-      return res.status(500).send("Error fetching available wrestlers.");
-    }
-    
-    console.log("Results from query:", results);  // Log the results before mapping
-    const availableWrestlers = results.map(row => row.wrestler_name);
-    
-    // Check if availableWrestlers is being correctly populated
-    console.log("Available Wrestlers:", availableWrestlers);  // Log the final array
-    
-    res.json(availableWrestlers);
-  });
+// Get all available wrestlers (not on a team)
+app.get("/api/availableWrestlers", async (req, res) => {
+  try {
+    const query = `
+      SELECT wrestler_name
+      FROM wrestlers
+      WHERE team_id IS NULL;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows.map(row => row.wrestler_name));
+  } catch (err) {
+    console.error("Error fetching available wrestlers:", err);
+    res.status(500).send("Error fetching available wrestlers.");
+  }
 });
 
-// Endpoint to get all teams (to display in the dropdown for team selection)
-app.get("/api/teams", (req, res) => {
-  const query = "SELECT id, team_name FROM teams";
-
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send("Error fetching teams.");
-    }
-
-    res.json(results); // Return all teams
-  });
+// Get all teams
+app.get("/api/teams", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, team_name FROM teams");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching teams:", err);
+    res.status(500).send("Error fetching teams.");
+  }
 });
 
 // Add a wrestler to a team
-app.post("/api/addWrestler", (req, res) => {
+app.post("/api/addWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
 
-  // Ensure teamName and wrestlerName are provided
   if (!teamName || !wrestlerName) {
     return res.status(400).send("Team name or wrestler name is missing.");
   }
 
-  // Check if the wrestler is available
-  const checkQuery = `SELECT * FROM wrestlers WHERE wrestler_name = ? AND team_id IS NULL`;
-
-  db.query(checkQuery, [wrestlerName], (err, results) => {
-    if (err) {
-      console.error("Error checking wrestler availability:", err);
-      return res.status(500).send("Error checking wrestler availability.");
-    }
-
-    if (results.length === 0) {
+  try {
+    // Check if the wrestler is available
+    const checkResult = await pool.query(
+      `SELECT * FROM wrestlers WHERE wrestler_name = $1 AND team_id IS NULL`,
+      [wrestlerName]
+    );
+    if (checkResult.rows.length === 0) {
       return res.status(400).send("Wrestler is already assigned or doesn't exist.");
     }
 
-    // Fetch team ID
-    const getTeamIdQuery = `SELECT id FROM teams WHERE team_name = ?`;
+    // Get the team ID
+    const teamResult = await pool.query(
+      `SELECT id FROM teams WHERE team_name = $1`,
+      [teamName]
+    );
+    if (teamResult.rows.length === 0) {
+      return res.status(400).send("Team does not exist.");
+    }
 
-    db.query(getTeamIdQuery, [teamName], (err, teamResults) => {
-      if (err) {
-        console.error("Error fetching team ID:", err);
-        return res.status(500).send("Error fetching team ID.");
-      }
+    const teamId = teamResult.rows[0].id;
 
-      if (teamResults.length === 0) {
-        return res.status(400).send("Team does not exist.");
-      }
+    // Assign the wrestler to the team
+    await pool.query(
+      `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
+      [teamId, wrestlerName]
+    );
 
-      const teamId = teamResults[0].id;
-
-      // Update the wrestler's team ID
-      const updateQuery = `UPDATE wrestlers SET team_id = ? WHERE wrestler_name = ?`;
-
-      db.query(updateQuery, [teamId, wrestlerName], (err, updateResults) => {
-        if (err) {
-          console.error("Error adding wrestler to the team:", err);
-          return res.status(500).send("Error adding wrestler to the team.");
-        }
-
-        res.json({ message: `Wrestler ${wrestlerName} added to team ${teamName}.` });
-      });
-    });
-  });
+    res.json({ message: `Wrestler ${wrestlerName} added to team ${teamName}.` });
+  } catch (err) {
+    console.error("Error adding wrestler:", err);
+    res.status(500).send("Error adding wrestler to the team.");
+  }
 });
 
-// Drop Wrestler
-app.post("/api/dropWrestler", (req, res) => {
+// Drop a wrestler from a team
+app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
 
   if (!teamName || !wrestlerName) {
     return res.status(400).send("Team name or wrestler name is missing.");
   }
 
-  // Get the team_id for the provided team name
-  const getTeamIdQuery = `SELECT id FROM teams WHERE team_name = ?`;
-
-  db.query(getTeamIdQuery, [teamName], (err, teamResults) => {
-    if (err) {
-      console.error("Error fetching team ID:", err);
-      return res.status(500).send("Error fetching team ID.");
-    }
-
-    if (teamResults.length === 0) {
+  try {
+    const teamResult = await pool.query(
+      `SELECT id FROM teams WHERE team_name = $1`,
+      [teamName]
+    );
+    if (teamResult.rows.length === 0) {
       return res.status(400).send("Team does not exist.");
     }
 
-    const teamId = teamResults[0].id;
+    const teamId = teamResult.rows[0].id;
 
-    // Remove the wrestler from the team's roster (set team_id to NULL)
-    const dropWrestlerQuery = `UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = ? AND team_id = ?`;
+    await pool.query(
+      `UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2`,
+      [wrestlerName, teamId]
+    );
 
-    db.query(dropWrestlerQuery, [wrestlerName, teamId], (err, updateResults) => {
-      if (err) {
-        console.error("Error dropping wrestler from the team:", err);
-        return res.status(500).send("Error dropping wrestler from the team.");
-      }
-
-      // Successfully removed wrestler from team
-      res.json({ message: `Wrestler ${wrestlerName} successfully dropped from team ${teamName}.` });
-    });
-  });
+    res.json({ message: `Wrestler ${wrestlerName} dropped from team ${teamName}.` });
+  } catch (err) {
+    console.error("Error dropping wrestler:", err);
+    res.status(500).send("Error dropping wrestler from the team.");
+  }
 });
 
+// Get roster for a specific team
+app.get("/api/roster/:teamName", async (req, res) => {
+  const teamName = req.params.teamName;
 
-// Route to fetch the roster of a team
-app.get("/api/roster/:teamName", (req, res) => {
-  const teamName = req.params.teamName;  // Get team name from URL parameters
+  try {
+    const result = await pool.query(
+      `
+      SELECT wrestler_name
+      FROM wrestlers
+      WHERE team_id = (
+        SELECT id FROM teams WHERE team_name = $1
+      )
+      `,
+      [teamName]
+    );
 
-  // Query to fetch the team's roster by team name
-  const query = `
-    SELECT wrestler_name
-    FROM wrestlers
-    WHERE team_id = (SELECT id FROM teams WHERE team_name = ?);
-  `;
-
-  db.query(query, [teamName], (err, results) => {
-    if (err) {
-      console.error("Error fetching team roster:", err);
-      return res.status(500).send("Error fetching team roster.");
-    }
-
-    if (results.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).send("Team roster not found.");
     }
 
-    res.json(results.map(row => row.wrestler_name));  // Send the roster as an array of wrestler names
-  });
+    res.json(result.rows.map(row => row.wrestler_name));
+  } catch (err) {
+    console.error("Error fetching team roster:", err);
+    res.status(500).send("Error fetching team roster.");
+  }
 });
-
 
 // Start the server
 app.listen(port, () => {

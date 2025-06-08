@@ -9,7 +9,7 @@ const Roster = () => {
     if (teamName) {
       // Fetch roster for the logged-in user (team)
       axios
-        .get(`http://localhost:5000/api/roster/${teamName}`)
+        .get(`https://wrestling-backend2.onrender.com/api/roster/${teamName}`)
         .then((response) => {
           setTeamRoster(response.data);  // Set the roster for the team
         })
@@ -27,7 +27,7 @@ const Roster = () => {
     }
 
     axios
-      .post("http://localhost:5000/api/dropWrestler", {
+      .post("https://wrestling-backend2.onrender.com/api/dropWrestler", {
         teamName: teamName,
         wrestlerName: wrestler
       })

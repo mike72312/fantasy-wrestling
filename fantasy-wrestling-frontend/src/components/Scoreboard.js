@@ -8,7 +8,7 @@ const Scoreboard = () => {
   useEffect(() => {
     // Fetch the scores when the component mounts
     axios
-      .get('http://localhost:5000/api/allRosters')  // Endpoint for team rosters
+      .get('https://wrestling-backend2.onrender.com/api/allRosters')  // Endpoint for team rosters
       .then((response) => {
         setScores(response.data);
       })

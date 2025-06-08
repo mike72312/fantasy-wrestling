@@ -19,7 +19,7 @@ const EventForm = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/upload-csv", // Make sure this matches your backend endpoint
+        "https://wrestling-backend2.onrender.com/api/upload-csv", // Make sure this matches your backend endpoint
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

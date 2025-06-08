@@ -7,7 +7,7 @@ const AvailableWrestlers = () => {
   useEffect(() => {
     // Fetch available wrestlers from the backend API
     axios
-      .get("http://localhost:5000/api/availableWrestlers")
+      .get("https://wrestling-backend2.onrender.com/api/availableWrestlers")
       .then((response) => {
         setAvailableWrestlers(response.data);  // Update state with fetched wrestlers
       })
@@ -25,7 +25,7 @@ const AvailableWrestlers = () => {
     }
 
     axios
-      .post("http://localhost:5000/api/addWrestler", {
+      .post("https://wrestling-backend2.onrender.com/api/addWrestler", {
         teamName: teamName,
         wrestlerName: wrestlerName
       })

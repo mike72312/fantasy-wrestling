@@ -10,7 +10,7 @@ const Home = () => {
     if (teamName) {
       // Fetch the team roster
       axios
-        .get(`http://localhost:5000/api/roster/${teamName}`)
+        .get(`https://wrestling-backend2.onrender.com/api/roster/${teamName}`)
         .then((response) => {
           setRoster(response.data);  // Set the roster data
         })
@@ -21,7 +21,7 @@ const Home = () => {
 
       // Fetch the available wrestlers
       axios
-        .get("http://localhost:5000/api/availableWrestlers")
+        .get("https://wrestling-backend2.onrender.com/api/availableWrestlers")
         .then((response) => {
           setAvailableWrestlers(response.data);  // Set available wrestlers
         })
@@ -43,7 +43,7 @@ const Home = () => {
     }
 
     axios
-      .post("http://localhost:5000/api/dropWrestler", {
+      .post("https://wrestling-backend2.onrender.com/api/dropWrestler", {
         teamName: teamName,
         wrestlerName: wrestlerName
       })
