@@ -8,7 +8,7 @@ const port = process.env.PORT || 5000;
 
 // ✅ CORS Configuration (Allow frontend on Render)
 app.use(cors({
-  origin: "https://wrestling-frontend2.onrender.com",
+  origin: "*",
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
