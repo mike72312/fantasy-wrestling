@@ -163,4 +163,5 @@ app.get("/api/roster/:teamName", async (req, res) => {
 // ✅ Start the server
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
