@@ -163,6 +163,7 @@ app.get("/api/roster/:teamName", async (req, res) => {
 // ✅ Get all add/drop transactions
 app.get("/api/transactions", async (req, res) => {
   try {
+    res.setHeader("Access-Control-Allow-Origin", "*"); // ✅ Force this header
     const query = `
       SELECT wrestler_name, team_name, action, timestamp
       FROM transactions
