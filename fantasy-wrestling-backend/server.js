@@ -115,20 +115,26 @@ app.get("/api/roster/:teamName", async (req, res) => {
   const teamName = req.params.teamName;
 
   try {
-    const result = await pool.query(
-      `SELECT wrestler_name
-       FROM wrestlers
-       WHERE team_id = (
-         SELECT id FROM teams WHERE team_name = $1
-       )`,
+    // 1. Get the team id
+    const teamRes = await pool.query(
+      "SELECT id FROM teams WHERE team_name = $1",
       [teamName]
     );
+    if (teamRes.rows.length === 0) {
+      return res.status(404).send("Team not found.");
+    }
+    const teamId = teamRes.rows[0].id;
 
-    if (result.rows.length === 0) {
+    // 2. Fetch wrestler names using numeric comparison
+    const rosterRes = await pool.query(
+      "SELECT wrestler_name FROM wrestlers WHERE team_id = $1",
+      [teamId]
+    );
+    if (rosterRes.rows.length === 0) {
       return res.status(404).send("Team roster not found.");
     }
 
-    res.json(result.rows.map(row => row.wrestler_name));
+    res.json(rosterRes.rows.map(r => r.wrestler_name));
   } catch (err) {
     console.error("Error fetching team roster:", err);
     res.status(500).send("Error fetching team roster.");
