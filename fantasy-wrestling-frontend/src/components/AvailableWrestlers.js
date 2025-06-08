@@ -20,7 +20,7 @@ const AvailableWrestlers = () => {
     fetch("https://wrestling-backend2.onrender.com/api/addWrestler", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teamName, wrestlerName }),
+      body: JSON.stringify({ team_name: teamName, wrestler_name: wrestlerName }),
     })
       .then(res => {
         if (!res.ok) throw new Error("Add failed");
@@ -57,7 +57,9 @@ const AvailableWrestlers = () => {
               boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
             }}
           >
-            <h3 style={{ margin: "0 0 8px 0" }}>{wrestler.wrestler_name}</h3>
+            <h3 style={{ margin: "0 0 8px 0" }}>
+  {wrestler.wrestler_name || wrestler.name || "Unnamed"}
+</h3>
             <p style={{ margin: "0 0 12px 0" }}>Points: {wrestler.points}</p>
             <button onClick={() => handleAdd(wrestler.wrestler_name)}>Add</button>
           </div>
