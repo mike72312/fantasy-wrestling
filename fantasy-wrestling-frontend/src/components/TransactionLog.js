@@ -5,7 +5,7 @@ const TransactionLog = () => {
   const [loading, setLoading] = useState(true); // For loading indicator
 
   useEffect(() => {
-    fetch("https://your-backend-name.onrender.com/api/transactions")
+    fetch("https://wrestling-backend.onrender.com/api/transactions")
       .then(res => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
