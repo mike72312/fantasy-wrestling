@@ -1,67 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
 
 const AvailableWrestlers = () => {
-  const [availableWrestlers, setAvailableWrestlers] = useState([]);
+  const [wrestlers, setWrestlers] = useState([]);
 
   useEffect(() => {
-    // Fetch available wrestlers from the backend API
-    axios
-      .get("https://wrestling-backend2.onrender.com/api/availableWrestlers")
-      .then((response) => {
-        setAvailableWrestlers(response.data);  // Update state with fetched wrestlers
+    fetch("https://your-backend-name.onrender.com/api/availableWrestlers")
+      .then(res => res.json())
+      .then(data => {
+        const sorted = data.sort((a, b) => b.points - a.points); // Sort by points
+        setWrestlers(sorted);
       })
-      .catch((error) => {
-        console.error("Error fetching available wrestlers:", error);
-      });
+      .catch(err => console.error("Error fetching available wrestlers:", err));
   }, []);
 
-  const handleAddWrestler = (wrestlerName) => {
-    const teamName = localStorage.getItem('teamName');  // Get the team name from localStorage
-    
-    if (!teamName) {
-      alert("You need to be logged in to add a wrestler.");
-      return;
-    }
+  const handleAdd = (wrestlerName) => {
+    const teamName = localStorage.getItem("teamName");
+    if (!teamName) return alert("No team selected.");
 
-    axios
-      .post("https://wrestling-backend2.onrender.com/api/addWrestler", {
-        teamName: teamName,
-        wrestlerName: wrestlerName
+    fetch("https://your-backend-name.onrender.com/api/addWrestler", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamName, wrestlerName }),
+    })
+      .then(res => res.json())
+      .then(() => {
+        setWrestlers(prev => prev.filter(w => w.wrestler_name !== wrestlerName));
       })
-      .then((response) => {
-        alert(response.data.message);
-        setAvailableWrestlers((prevWrestlers) =>
-          prevWrestlers.filter((wrestler) => wrestler !== wrestlerName)
-        );
-      })
-      .catch((error) => {
-        console.error("Error adding wrestler:", error);
-        alert("There was an error adding the wrestler.");
-      });
+      .catch(err => console.error("Error adding wrestler:", err));
+  };
+
+  const getRowColor = (points) => {
+    if (points >= 30) return "#d4edda"; // green
+    if (points >= 10) return "#fff3cd"; // yellow
+    return "#f8d7da"; // red
   };
 
   return (
-    <div className="container">
+    <div style={{ padding: "20px" }}>
       <h2>Available Wrestlers</h2>
-      <div className="wrestler-list">
-        {availableWrestlers.length === 0 ? (
-          <p>No available wrestlers at the moment.</p>
-        ) : (
-          availableWrestlers.map((wrestler, index) => (
-            <div className="card" key={index}>
-              <div className="card-content">
-                <h4>{wrestler}</h4>
-                <button className="add-button" onClick={() => handleAddWrestler(wrestler)}>
-                  Add
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={cellStyle}>Wrestler</th>
+            <th style={cellStyle}>Points</th>
+            <th style={cellStyle}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {wrestlers.map((w, idx) => (
+            <tr key={idx} style={{ backgroundColor: getRowColor(w.points) }}>
+              <td style={cellStyle}>{w.wrestler_name}</td>
+              <td style={cellStyle}>{w.points}</td>
+              <td style={cellStyle}>
+                <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
+};
+
+const cellStyle = {
+  border: "1px solid #ccc",
+  padding: "8px",
+  textAlign: "left",
 };
 
 export default AvailableWrestlers;

@@ -4,7 +4,6 @@ import NavBar from './components/NavBar';
 import Home from './components/Home';
 import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
-import TransactionLog from './components/TransactionLog';  // ✅ Import the new component
 import './App.css';
 
 const App = () => {
@@ -16,7 +15,6 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/available-wrestlers" element={<AvailableWrestlers />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/transactionlog" element={<TransactionLog />} />  {/* ✅ Add the new route */}
       </Routes>
     </Router>
   );
