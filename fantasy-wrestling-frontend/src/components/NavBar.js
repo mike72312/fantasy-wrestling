@@ -20,7 +20,7 @@ const NavBar = () => {
           <Link to="/available-wrestlers" style={linkStyle}>Available Wrestlers</Link>
         </li>
         <li style={navItemStyle}>
-          <Link to="/scoreboard" style={linkStyle}>Scoreboard</Link>
+          <Link to="/transactions" style={linkStyle}>Transactions</Link>
         </li>
         <li style={navItemStyle}>
           <button onClick={handleLogout} style={buttonStyle}>Logout</button> {/* Logout Button */}
