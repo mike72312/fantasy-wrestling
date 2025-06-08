@@ -4,7 +4,7 @@ const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
 
   useEffect(() => {
-    fetch("https://your-backend-name.onrender.com/api/availableWrestlers")
+    fetch("https://wrestling-backend.onrender.com/api/availableWrestlers")
       .then(res => res.json())
       .then(data => {
         const sorted = data.sort((a, b) => b.points - a.points); // Sort by points
