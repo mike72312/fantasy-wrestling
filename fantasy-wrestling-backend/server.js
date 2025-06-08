@@ -4,7 +4,7 @@ const { Pool } = require("pg");
 require("dotenv").config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5000; // ✅ Only one port declaration
 
 app.use(cors());
 app.use(express.json());
@@ -53,30 +53,25 @@ app.post("/api/addWrestler", async (req, res) => {
   }
 
   try {
-    // Check if the wrestler is available
-    const checkResult = await pool.query(
+    const available = await pool.query(
       `SELECT * FROM wrestlers WHERE wrestler_name = $1 AND team_id IS NULL`,
       [wrestlerName]
     );
-    if (checkResult.rows.length === 0) {
+    if (available.rows.length === 0) {
       return res.status(400).send("Wrestler is already assigned or doesn't exist.");
     }
 
-    // Get the team ID
-    const teamResult = await pool.query(
+    const teamRes = await pool.query(
       `SELECT id FROM teams WHERE team_name = $1`,
       [teamName]
     );
-    if (teamResult.rows.length === 0) {
+    if (teamRes.rows.length === 0) {
       return res.status(400).send("Team does not exist.");
     }
 
-    const teamId = teamResult.rows[0].id;
-
-    // Assign the wrestler to the team
     await pool.query(
       `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
-      [teamId, wrestlerName]
+      [teamRes.rows[0].id, wrestlerName]
     );
 
     res.json({ message: `Wrestler ${wrestlerName} added to team ${teamName}.` });
@@ -95,19 +90,17 @@ app.post("/api/dropWrestler", async (req, res) => {
   }
 
   try {
-    const teamResult = await pool.query(
+    const teamRes = await pool.query(
       `SELECT id FROM teams WHERE team_name = $1`,
       [teamName]
     );
-    if (teamResult.rows.length === 0) {
+    if (teamRes.rows.length === 0) {
       return res.status(400).send("Team does not exist.");
     }
 
-    const teamId = teamResult.rows[0].id;
-
     await pool.query(
       `UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2`,
-      [wrestlerName, teamId]
+      [wrestlerName, teamRes.rows[0].id]
     );
 
     res.json({ message: `Wrestler ${wrestlerName} dropped from team ${teamName}.` });
@@ -123,13 +116,11 @@ app.get("/api/roster/:teamName", async (req, res) => {
 
   try {
     const result = await pool.query(
-      `
-      SELECT wrestler_name
-      FROM wrestlers
-      WHERE team_id = (
-        SELECT id FROM teams WHERE team_name = $1
-      )
-      `,
+      `SELECT wrestler_name
+       FROM wrestlers
+       WHERE team_id = (
+         SELECT id FROM teams WHERE team_name = $1
+       )`,
       [teamName]
     );
 
@@ -145,7 +136,6 @@ app.get("/api/roster/:teamName", async (req, res) => {
 });
 
 // Start the server
-const port = process.env.PORT || 5000;
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);
 });
