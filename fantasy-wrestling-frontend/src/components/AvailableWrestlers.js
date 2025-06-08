@@ -1,152 +1,77 @@
-const express = require("express");
-const app = express();
-const port = process.env.PORT || 5000;
+import React, { useEffect, useState } from "react";
 
-//test
-app.get("/test", (req, res) => {
-  res.json({ message: "Test route is working" });
-});
+const AvailableWrestlers = () => {
+  const [wrestlers, setWrestlers] = useState([]);
 
-// ✅ CORS Configuration (Allow frontend on Render)
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"]
-}));
+  useEffect(() => {
+    fetch("https://wrestling-backend.onrender.com/api/availableWrestlers")
+      .then(res => res.json())
+      .then(data => {
+        const sorted = data.sort((a, b) => b.points - a.points);
+        setWrestlers(sorted);
+      })
+      .catch(err => console.error("Error fetching available wrestlers:", err));
+  }, []);
 
-app.use(express.json());
+  const handleAdd = (wrestlerName) => {
+    const teamName = localStorage.getItem("teamName");
+    if (!teamName) return alert("No team selected.");
 
-// ✅ PostgreSQL connection using Supabase
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Required for Supabase
-});
+    fetch("https://wrestling-backend.onrender.com/api/addWrestler", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teamName, wrestlerName }),
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Add failed");
+        return res.json();
+      })
+      .then(() => {
+        setWrestlers(prev => prev.filter(w => w.wrestler_name !== wrestlerName));
+      })
+      .catch(err => {
+        console.error("Error adding wrestler:", err);
+        alert("Failed to add wrestler.");
+      });
+  };
 
-// ✅ Get all available wrestlers (not on a team)
-app.get("/api/availableWrestlers", async (req, res) => {
-  try {
-    const query = `
-      SELECT wrestler_name, points
-      FROM wrestlers
-      WHERE team_id IS NULL;
-    `;
-    const result = await pool.query(query);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching available wrestlers:", err);
-    res.status(500).send("Error fetching available wrestlers.");
-  }
-});
+  const getRowColor = (points) => {
+    if (points >= 30) return "#d4edda"; // green
+    if (points >= 10) return "#fff3cd"; // yellow
+    return "#f8d7da"; // red
+  };
 
-// ✅ Get all teams
-app.get("/api/teams", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT id, team_name FROM teams");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching teams:", err);
-    res.status(500).send("Error fetching teams.");
-  }
-});
+  const cellStyle = {
+    border: "1px solid #ccc",
+    padding: "8px",
+    textAlign: "left",
+  };
 
-// ✅ Add a wrestler to a team
-app.post("/api/addWrestler", async (req, res) => {
-  const { teamName, wrestlerName } = req.body;
-  if (!teamName || !wrestlerName) {
-    return res.status(400).send("Team name or wrestler name is missing.");
-  }
+  return (
+    <div style={{ padding: "20px" }}>
+      <h2>Available Wrestlers</h2>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={cellStyle}>Wrestler</th>
+            <th style={cellStyle}>Points</th>
+            <th style={cellStyle}>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {wrestlers.map((w, idx) => (
+            <tr key={idx} style={{ backgroundColor: getRowColor(w.points) }}>
+              <td style={cellStyle}>{w.wrestler_name}</td>
+              <td style={cellStyle}>{w.points}</td>
+              <td style={cellStyle}>
+                <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
-  try {
-    const available = await pool.query(
-      `SELECT * FROM wrestlers WHERE wrestler_name = $1 AND team_id IS NULL`,
-      [wrestlerName]
-    );
-    if (available.rows.length === 0) {
-      return res.status(400).send("Wrestler is already assigned or doesn't exist.");
-    }
-
-    const teamRes = await pool.query(
-      `SELECT id FROM teams WHERE team_name = $1`,
-      [teamName]
-    );
-    if (teamRes.rows.length === 0) {
-      return res.status(400).send("Team does not exist.");
-    }
-
-    const teamId = teamRes.rows[0].id;
-
-    await pool.query(
-      `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
-      [teamId, wrestlerName]
-    );
-
-    res.json({ message: `Wrestler ${wrestlerName} added to team ${teamName}.` });
-  } catch (err) {
-    console.error("Error adding wrestler:", err);
-    res.status(500).send("Error adding wrestler to the team.");
-  }
-});
-
-// ✅ Drop a wrestler from a team
-app.post("/api/dropWrestler", async (req, res) => {
-  const { teamName, wrestlerName } = req.body;
-  if (!teamName || !wrestlerName) {
-    return res.status(400).send("Team name or wrestler name is missing.");
-  }
-
-  try {
-    const teamRes = await pool.query(
-      `SELECT id FROM teams WHERE team_name = $1`,
-      [teamName]
-    );
-    if (teamRes.rows.length === 0) {
-      return res.status(400).send("Team does not exist.");
-    }
-
-    const teamId = teamRes.rows[0].id;
-
-    const dropRes = await pool.query(
-      `UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2`,
-      [wrestlerName, teamId]
-    );
-
-    if (dropRes.rowCount === 0) {
-      return res.status(400).send("Wrestler not found on this team's roster.");
-    }
-
-    res.json({ message: `Wrestler ${wrestlerName} dropped from team ${teamName}.` });
-  } catch (err) {
-    console.error("Error dropping wrestler:", err);
-    res.status(500).send("Error dropping wrestler from the team.");
-  }
-});
-
-// ✅ Get roster for a specific team
-app.get("/api/roster/:teamName", async (req, res) => {
-  const { teamName } = req.params;
-  try {
-    const teamRes = await pool.query(
-      "SELECT id FROM teams WHERE team_name = $1",
-      [teamName]
-    );
-    if (teamRes.rows.length === 0) {
-      return res.status(404).send("Team not found.");
-    }
-
-    const teamId = teamRes.rows[0].id;
-    const rosterRes = await pool.query(
-      "SELECT wrestler_name FROM wrestlers WHERE team_id = $1",
-      [teamId]
-    );
-
-    res.json(rosterRes.rows.map(r => r.wrestler_name));
-  } catch (err) {
-    console.error("Error fetching team roster:", err);
-    res.status(500).send("Error fetching team roster.");
-  }
-});
-
-// ✅ Start the server
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server is running on port ${port}`);
-})
+export default AvailableWrestlers;
