@@ -4,7 +4,7 @@ const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
 
   useEffect(() => {
-    fetch("https://wrestling-backend.onrender.com/api/availableWrestlers")
+    fetch("https://wrestling-backend2.onrender.com/api/availableWrestlers")
       .then(res => res.json())
       .then(data => {
         const sorted = data.sort((a, b) => b.points - a.points);
@@ -17,7 +17,7 @@ const AvailableWrestlers = () => {
     const teamName = localStorage.getItem("teamName");
     if (!teamName) return alert("No team selected.");
 
-    fetch("https://wrestling-backend.onrender.com/api/addWrestler", {
+    fetch("https://wrestling-backend2.onrender.com/api/addWrestler", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teamName, wrestlerName }),
