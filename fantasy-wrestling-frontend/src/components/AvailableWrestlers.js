@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 
 const AvailableWrestlers = () => {
+  console.log("🧪 AvailableWrestlers component loaded - v3");
+
   const [wrestlers, setWrestlers] = useState([]);
 
   useEffect(() => {
@@ -20,6 +22,8 @@ const AvailableWrestlers = () => {
     if (!teamName) return alert("No team selected.");
 
     const wrestlerName = wrestlerNameRaw || "Unnamed";
+
+    console.log("💡 Raw values:", { teamName, wrestlerName });
 
     const payload = {
       team_name: teamName,
