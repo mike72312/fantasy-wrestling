@@ -55,15 +55,15 @@ app.get("/api/teams", async (req, res) => {
 
 // ✅ Add a wrestler to a team
 app.post("/api/addWrestler", async (req, res) => {
-  const { teamName, wrestlerName } = req.body;
-  if (!teamName || !wrestlerName) {
+  const { team_name, wrestler_name } = req.body;
+  if (!team_name || !wrestler_name) {
     return res.status(400).send("Team name or wrestler name is missing.");
   }
 
   try {
     const available = await pool.query(
       `SELECT * FROM wrestlers WHERE wrestler_name = $1 AND team_id IS NULL`,
-      [wrestlerName]
+      [wrestler_name]
     );
     if (available.rows.length === 0) {
       return res.status(400).send("Wrestler is already assigned or doesn't exist.");
@@ -71,7 +71,7 @@ app.post("/api/addWrestler", async (req, res) => {
 
     const teamRes = await pool.query(
       `SELECT id FROM teams WHERE team_name = $1`,
-      [teamName]
+      [team_name]
     );
     if (teamRes.rows.length === 0) {
       return res.status(400).send("Team does not exist.");
@@ -81,15 +81,15 @@ app.post("/api/addWrestler", async (req, res) => {
 
     await pool.query(
       `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
-      [teamId, wrestlerName]
+      [teamId, wrestler_name]
     );
 
     await pool.query(
       `INSERT INTO transactions (wrestler_name, team_name, action) VALUES ($1, $2, 'add')`,
-      [wrestlerName, teamName]
+      [wrestler_name, team_name]
     );
 
-    res.json({ message: `Wrestler ${wrestlerName} added to team ${teamName}.` });
+    res.json({ message: `Wrestler ${wrestler_name} added to team ${team_name}.` });
   } catch (err) {
     console.error("Error adding wrestler:", err);
     res.status(500).send("Error adding wrestler to the team.");
