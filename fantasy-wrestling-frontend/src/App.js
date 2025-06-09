@@ -4,6 +4,7 @@ import NavBar from './components/NavBar';
 import Home from './components/Home';
 import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
+import Transactions from "./components/Transactions";
 import './App.css';
 
 const App = () => {
@@ -15,6 +16,7 @@ const App = () => {
         <Route path="/" element={<Home />} />
         <Route path="/available-wrestlers" element={<AvailableWrestlers />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/transactions" element={<Transactions />} />
       </Routes>
     </Router>
   );

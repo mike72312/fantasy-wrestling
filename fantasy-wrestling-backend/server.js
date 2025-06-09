@@ -42,6 +42,23 @@ app.get("/api/availableWrestlers", async (req, res) => {
   }
 });
 
+//Transactions Log
+app.get("/api/transactions", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT wrestler_name, team_name, action, timestamp
+      FROM transactions
+      ORDER BY timestamp DESC
+      LIMIT 100;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    res.status(500).send("Error fetching transactions.");
+  }
+});
+
+
 // ✅ Get all teams
 app.get("/api/teams", async (req, res) => {
   try {
