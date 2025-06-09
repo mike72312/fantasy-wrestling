@@ -34,7 +34,7 @@ app.get("/api/availableWrestlers", async (req, res) => {
       WHERE team_id IS NULL;
     `;
     const result = await pool.query(query);
-    res.json(result.rows); // return full objects
+    res.json(result.rows);
   } catch (err) {
     console.error("Error fetching available wrestlers:", err);
     res.status(500).send("Error fetching available wrestlers.");
@@ -78,8 +78,15 @@ app.post("/api/addWrestler", async (req, res) => {
   }
 
   try {
+    // Log all currently available wrestlers
+    const debugAvailable = await pool.query(
+      `SELECT wrestler_name FROM wrestlers WHERE team_id IS NULL`
+    );
+    console.log("🧪 Available wrestlers:", debugAvailable.rows.map(r => r.wrestler_name));
+
+    // Use case-insensitive match for wrestler_name
     const available = await pool.query(
-      `SELECT * FROM wrestlers WHERE wrestler_name = $1 AND team_id IS NULL`,
+      `SELECT * FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1) AND team_id IS NULL`,
       [wrestler_name]
     );
     if (available.rows.length === 0) {
@@ -97,7 +104,7 @@ app.post("/api/addWrestler", async (req, res) => {
     const teamId = teamRes.rows[0].id;
 
     await pool.query(
-      `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
+      `UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2)`,
       [teamId, wrestler_name]
     );
 
@@ -133,7 +140,7 @@ app.post("/api/dropWrestler", async (req, res) => {
     const teamId = teamRes.rows[0].id;
 
     const dropRes = await pool.query(
-      `UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2`,
+      `UPDATE wrestlers SET team_id = NULL WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2`,
       [wrestlerName, teamId]
     );
 
