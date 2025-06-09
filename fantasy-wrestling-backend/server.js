@@ -76,6 +76,7 @@ app.post("/api/addWrestler", async (req, res) => {
   if (!team_name || !wrestler_name) {
     return res.status(400).send("Team name or wrestler name is missing.");
   }
+console.log("📩 Received POST /api/addWrestler:", req.body);
 
   try {
     const available = await pool.query(

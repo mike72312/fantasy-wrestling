@@ -13,38 +13,36 @@ const AvailableWrestlers = () => {
       .catch((err) => console.error("Error fetching available wrestlers:", err));
   }, []);
 
-  const handleAdd = (wrestlerNameRaw) => {
-    const teamName = localStorage.getItem("teamName");
-    if (!teamName) return alert("No team selected.");
+ const handleAdd = (wrestlerNameRaw) => {
+  const teamName = localStorage.getItem("teamName");
+  if (!teamName) return alert("No team selected.");
 
-    const wrestlerName = wrestlerNameRaw || "Unknown";
+  const wrestlerName = wrestlerNameRaw || "Unnamed";
 
-    const payload = {
-      team_name: teamName,
-      wrestler_name: wrestlerName,
-    };
-
-    console.log("Sending to backend:", payload); // DEBUGGING
-
-    fetch("https://wrestling-backend2.onrender.com/api/addWrestler", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Add failed");
-        return res.json();
-      })
-      .then(() => {
-        setWrestlers((prev) =>
-          prev.filter((w) => w.wrestler_name !== wrestlerName)
-        );
-      })
-      .catch((err) => {
-        console.error("Error adding wrestler:", err);
-        alert("Failed to add wrestler.");
-      });
+  const payload = {
+    team_name: teamName,
+    wrestler_name: wrestlerName
   };
+
+  console.log("🚀 Submitting:", payload); // <--- ADD THIS
+
+  fetch("https://wrestling-backend2.onrender.com/api/addWrestler", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error("Add failed");
+      return res.json();
+    })
+    .then(() => {
+      setWrestlers((prev) => prev.filter((w) => w.wrestler_name !== wrestlerName));
+    })
+    .catch((err) => {
+      console.error("❌ Error adding wrestler:", err);
+      alert("Failed to add wrestler.");
+    });
+};
 
   const getCardColor = (points) => {
     if (points >= 30) return "#d4edda"; // green
