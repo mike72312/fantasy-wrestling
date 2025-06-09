@@ -6,43 +6,42 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-//test
+// Test Route
 app.get("/test", (req, res) => {
   res.json({ message: "Test route is working" });
 });
 
-// ✅ CORS Configuration (Allow frontend on Render)
+// Middleware
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
-
 app.use(express.json());
 
-// ✅ PostgreSQL connection using Supabase
+// PostgreSQL connection (Supabase)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // Required for Supabase
+  ssl: { rejectUnauthorized: false }
 });
 
 // ✅ Get all available wrestlers (not on a team)
 app.get("/api/availableWrestlers", async (req, res) => {
   try {
     const query = `
-      SELECT wrestler_name
+      SELECT wrestler_name, points
       FROM wrestlers
       WHERE team_id IS NULL;
     `;
     const result = await pool.query(query);
-    res.json(result.rows.map(row => row.wrestler_name));
+    res.json(result.rows); // return full objects
   } catch (err) {
     console.error("Error fetching available wrestlers:", err);
     res.status(500).send("Error fetching available wrestlers.");
   }
 });
 
-//Transactions Log
+// ✅ Get transaction log
 app.get("/api/transactions", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -58,7 +57,6 @@ app.get("/api/transactions", async (req, res) => {
   }
 });
 
-
 // ✅ Get all teams
 app.get("/api/teams", async (req, res) => {
   try {
@@ -73,10 +71,11 @@ app.get("/api/teams", async (req, res) => {
 // ✅ Add a wrestler to a team
 app.post("/api/addWrestler", async (req, res) => {
   const { team_name, wrestler_name } = req.body;
+  console.log("📩 Received POST /api/addWrestler:", req.body);
+
   if (!team_name || !wrestler_name) {
     return res.status(400).send("Team name or wrestler name is missing.");
   }
-console.log("📩 Received POST /api/addWrestler:", req.body);
 
   try {
     const available = await pool.query(
@@ -117,6 +116,7 @@ console.log("📩 Received POST /api/addWrestler:", req.body);
 // ✅ Drop a wrestler from a team
 app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
+
   if (!teamName || !wrestlerName) {
     return res.status(400).send("Team name or wrestler name is missing.");
   }
