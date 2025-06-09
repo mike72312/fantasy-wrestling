@@ -81,7 +81,7 @@ const AvailableWrestlers = () => {
               <p style={{ margin: "0 0 12px 0" }}>
                 Points: {wrestler.points ?? "N/A"}
               </p>
-              <button onClick={() => handleAdd(name)}>Add</button>
+              <button onClick={() => handleAdd(wrestler.wrestler_name)}>Add</button>
             </div>
           );
         })}
