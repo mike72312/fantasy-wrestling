@@ -39,10 +39,7 @@ const AvailableWrestlers = () => {
       })
       .then(() => {
         setWrestlers((prev) =>
-          prev.filter((w) => {
-            const current = w.wrestler_name || w.name;
-            return current !== wrestlerName;
-          })
+          prev.filter((w) => w.wrestler_name !== wrestlerName)
         );
         console.log(`✅ Successfully added ${wrestlerName} to ${teamName}`);
       })
