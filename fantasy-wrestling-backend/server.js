@@ -189,16 +189,18 @@ app.get("/api/roster/:teamName", async (req, res) => {
 app.get("/api/standings", async (req, res) => {
   try {
     const query = `
-      SELECT t.name AS team_name, COALESCE(SUM(w.points), 0) AS score
+      SELECT 
+        t.team_name, 
+        COALESCE(SUM(w.points), 0) AS score
       FROM teams t
       LEFT JOIN wrestlers w ON w.team_id = t.id
-      GROUP BY t.name
+      GROUP BY t.team_name
       ORDER BY score DESC;
     `;
     const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching standings:", err.message);
+    console.error("❌ Error fetching standings:", err); // <== Show full error
     res.status(500).json({ error: "Error fetching standings" });
   }
 });
