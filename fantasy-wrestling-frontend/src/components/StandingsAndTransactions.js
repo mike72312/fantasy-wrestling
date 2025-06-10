@@ -8,14 +8,34 @@ const StandingsAndTransactions = () => {
     // Fetch team standings
     fetch("https://wrestling-backend2.onrender.com/api/standings")
       .then((res) => res.json())
-      .then((data) => setStandings(data))
-      .catch((err) => console.error("❌ Failed to fetch standings", err));
+      .then((data) => {
+        if (!Array.isArray(data)) {
+          console.error("❌ Invalid standings format:", data);
+          setStandings([]);
+        } else {
+          setStandings(data);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Failed to fetch standings", err);
+        setStandings([]);
+      });
 
     // Fetch transactions
     fetch("https://wrestling-backend2.onrender.com/api/transactions")
       .then((res) => res.json())
-      .then((data) => setTransactions(data))
-      .catch((err) => console.error("❌ Failed to fetch transactions", err));
+      .then((data) => {
+        if (!Array.isArray(data)) {
+          console.error("❌ Invalid transactions format:", data);
+          setTransactions([]);
+        } else {
+          setTransactions(data);
+        }
+      })
+      .catch((err) => {
+        console.error("❌ Failed to fetch transactions", err);
+        setTransactions([]);
+      });
   }, []);
 
   return (
@@ -33,7 +53,14 @@ const StandingsAndTransactions = () => {
           {standings.map((team, index) => (
             <tr key={team.team_name}>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{index + 1}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{team.team_name}</td>
+              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                <a
+                  href={`/team/${encodeURIComponent(team.team_name)}`}
+                  style={{ textDecoration: "none", color: "#007bff" }}
+                >
+                  {team.team_name}
+                </a>
+              </td>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{team.score}</td>
             </tr>
           ))}
@@ -41,20 +68,23 @@ const StandingsAndTransactions = () => {
       </table>
 
       <h2>Recent Transactions</h2>
-<ul style={{ listStyleType: "none", padding: 0 }}>
-  {transactions.map((txn, idx) => (
-    <li
-      key={idx}
-      style={{
-        marginBottom: "12px",
-        padding: "10px",
-        borderBottom: "1px solid #ddd",
-      }}
-    >
-      <strong>{new Date(txn.timestamp).toLocaleString()}</strong> —{" "}
-      <strong>{txn.team_name}</strong> {txn.action} <strong>{txn.wrestler_name}</strong>
-    </li>
-  ))}
-</ul>
+      <ul style={{ listStyleType: "none", padding: 0 }}>
+        {transactions.map((txn, idx) => (
+          <li
+            key={idx}
+            style={{
+              marginBottom: "12px",
+              padding: "10px",
+              borderBottom: "1px solid #ddd",
+            }}
+          >
+            <strong>{new Date(txn.timestamp).toLocaleString()}</strong> —{" "}
+            <strong>{txn.team_name}</strong> {txn.action} <strong>{txn.wrestler_name}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
 export default StandingsAndTransactions;

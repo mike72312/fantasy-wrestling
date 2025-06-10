@@ -205,6 +205,26 @@ app.get("/api/standings", async (req, res) => {
   }
 });
 
+//Get Team Rosters
+app.get("/api/roster/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+  try {
+    const query = `
+      SELECT wrestler_name, points
+      FROM wrestlers
+      WHERE team_id = (
+        SELECT id FROM teams WHERE team_name = $1
+      )
+      ORDER BY points DESC;
+    `;
+    const result = await pool.query(query, [teamName]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching team roster:", err);
+    res.status(500).json({ error: "Error fetching team roster" });
+  }
+});
+
 // ✅ Start the server
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);

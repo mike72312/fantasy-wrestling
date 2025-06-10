@@ -7,6 +7,7 @@ import Login from './components/Login';
 import Transactions from "./components/Transactions";
 import './App.css';
 import StandingsAndTransactions from "./components/StandingsAndTransactions";
+import TeamRoster from "./components/TeamRoster"; // Make sure this component exists
 
 const App = () => {
   return (
@@ -19,6 +20,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/league" element={<StandingsAndTransactions />} />
+        <Route path="/team/:teamName" element={<TeamRoster />} />
       </Routes>
     </Router>
   );
