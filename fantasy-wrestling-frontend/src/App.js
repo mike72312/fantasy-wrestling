@@ -1,19 +1,18 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Home from './components/Home';
 import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
 import Transactions from "./components/Transactions";
-import './App.css';
 import StandingsAndTransactions from "./components/StandingsAndTransactions";
-import TeamRoster from "./components/TeamRoster"; // Make sure this component exists
+import TeamRoster from "./components/TeamRoster"; // Ensure this exists
+import './App.css';
 
 const App = () => {
   return (
-    <Router>
+    <>
       <NavBar />
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/available-wrestlers" element={<AvailableWrestlers />} />
@@ -22,7 +21,7 @@ const App = () => {
         <Route path="/league" element={<StandingsAndTransactions />} />
         <Route path="/team/:teamName" element={<TeamRoster />} />
       </Routes>
-    </Router>
+    </>
   );
 };
 
