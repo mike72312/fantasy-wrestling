@@ -185,14 +185,13 @@ app.get("/api/roster/:teamName", async (req, res) => {
   }
 });
 
-// Get team standings (total points per team, ordered descending)
+// Get team standings (include teams with zero points)
 app.get("/api/standings", async (req, res) => {
   try {
     const query = `
-      SELECT t.name AS team_name, SUM(w.points) AS score
-      FROM wrestlers w
-      JOIN teams t ON w.team_id = t.id
-      WHERE w.team_id IS NOT NULL
+      SELECT t.name AS team_name, COALESCE(SUM(w.points), 0) AS score
+      FROM teams t
+      LEFT JOIN wrestlers w ON w.team_id = t.id
       GROUP BY t.name
       ORDER BY score DESC;
     `;
