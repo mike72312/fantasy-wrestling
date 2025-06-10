@@ -6,7 +6,7 @@ import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
 import Transactions from "./components/Transactions";
 import './App.css';
-import Standings from "./components/StandingsAndTransactions";
+import StandingsAndTransactions from "./components/StandingsAndTransactions";
 
 const App = () => {
   return (
