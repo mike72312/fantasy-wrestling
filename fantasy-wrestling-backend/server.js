@@ -198,8 +198,8 @@ app.get("/api/standings", async (req, res) => {
     const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
-  console.error("Error fetching standings:", err);
-  res.status(500).json({ error: "Error fetching standings" });
+    console.error("❌ Error fetching standings:", err.message);
+    res.status(500).json({ error: "Error fetching standings" });
   }
 });
 
