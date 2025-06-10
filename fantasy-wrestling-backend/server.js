@@ -189,10 +189,11 @@ app.get("/api/roster/:teamName", async (req, res) => {
 app.get("/api/standings", async (req, res) => {
   try {
     const query = `
-      SELECT team_id, SUM(points) AS score
-      FROM wrestlers
-      WHERE team_id IS NOT NULL
-      GROUP BY team_id
+      SELECT t.name AS team_name, SUM(w.points) AS score
+      FROM wrestlers w
+      JOIN teams t ON w.team_id = t.id
+      WHERE w.team_id IS NOT NULL
+      GROUP BY t.name
       ORDER BY score DESC;
     `;
     const result = await pool.query(query);

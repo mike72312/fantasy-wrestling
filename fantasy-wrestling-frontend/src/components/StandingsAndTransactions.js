@@ -1,56 +1,55 @@
 import React, { useEffect, useState } from "react";
 
-function StandingsAndTransactions() {
+const StandingsAndTransactions = () => {
   const [standings, setStandings] = useState([]);
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    // Fetch standings
+    // Fetch team standings
     fetch("https://wrestling-backend2.onrender.com/api/standings")
       .then((res) => res.json())
-      .then(setStandings)
-      .catch((err) => console.error("Error loading standings:", err));
+      .then((data) => setStandings(data))
+      .catch((err) => console.error("❌ Failed to fetch standings", err));
 
     // Fetch transactions
     fetch("https://wrestling-backend2.onrender.com/api/transactions")
       .then((res) => res.json())
-      .then(setTransactions)
-      .catch((err) => console.error("Error loading transactions:", err));
+      .then((data) => setTransactions(data))
+      .catch((err) => console.error("❌ Failed to fetch transactions", err));
   }, []);
 
   return (
-    <div className="standings-transactions">
-      <h2>League Standings</h2>
-      <table>
+    <div style={{ padding: "20px" }}>
+      <h2>Team Standings</h2>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "40px" }}>
         <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Team</th>
-            <th>Points</th>
+          <tr style={{ backgroundColor: "#f2f2f2" }}>
+            <th style={{ border: "1px solid #ddd", padding: "8px" }}>Rank</th>
+            <th style={{ border: "1px solid #ddd", padding: "8px" }}>Team Name</th>
+            <th style={{ border: "1px solid #ddd", padding: "8px" }}>Score</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((team, index) => (
-            <tr key={team.team_id}>
-              <td>{index + 1}</td>
-              <td>{team.team_id}</td>
-              <td>{team.score}</td>
+            <tr key={team.team_name}>
+              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{index + 1}</td>
+              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{team.team_name}</td>
+              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{team.score}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <h2 style={{ marginTop: "2rem" }}>Recent Transactions</h2>
-      <ul>
-        {transactions.map((t) => (
-          <li key={t.id}>
-            [{new Date(t.timestamp).toLocaleString()}]{" "}
-            <strong>{t.team_name}</strong> {t.action} <strong>{t.wrestler_name}</strong>
+      <h2>Recent Transactions</h2>
+      <ul style={{ listStyleType: "none", padding: 0 }}>
+        {transactions.map((txn, idx) => (
+          <li key={idx} style={{ marginBottom: "12px", padding: "10px", borderBottom: "1px solid #ddd" }}>
+            <strong>{txn.timestamp}</strong> — {txn.description}
           </li>
         ))}
       </ul>
     </div>
   );
-}
+};
 
 export default StandingsAndTransactions;
