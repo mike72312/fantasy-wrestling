@@ -185,6 +185,24 @@ app.get("/api/roster/:teamName", async (req, res) => {
   }
 });
 
+// Get team standings (total points per team, ordered descending)
+app.get("/api/standings", async (req, res) => {
+  try {
+    const query = `
+      SELECT team_id, SUM(points) AS score
+      FROM wrestlers
+      WHERE team_id IS NOT NULL
+      GROUP BY team_id
+      ORDER BY score DESC;
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching standings:", err);
+    res.status(500).send("Error fetching standings");
+  }
+});
+
 // ✅ Start the server
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on port ${port}`);

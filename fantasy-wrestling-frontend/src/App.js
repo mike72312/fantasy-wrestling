@@ -6,6 +6,7 @@ import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
 import Transactions from "./components/Transactions";
 import './App.css';
+import Standings from "./components/StandingsAndTransactions";
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
         <Route path="/available-wrestlers" element={<AvailableWrestlers />} />
         <Route path="/login" element={<Login />} />
         <Route path="/transactions" element={<Transactions />} />
+        <Route path="/league" element={<StandingsAndTransactions />} />
       </Routes>
     </Router>
   );
