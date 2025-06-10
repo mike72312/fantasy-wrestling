@@ -160,31 +160,6 @@ app.post("/api/dropWrestler", async (req, res) => {
   }
 });
 
-// ✅ Get roster for a specific team
-app.get("/api/roster/:teamName", async (req, res) => {
-  const { teamName } = req.params;
-  try {
-    const teamRes = await pool.query(
-      "SELECT id FROM teams WHERE team_name = $1",
-      [teamName]
-    );
-    if (teamRes.rows.length === 0) {
-      return res.status(404).send("Team not found.");
-    }
-
-    const teamId = teamRes.rows[0].id;
-    const rosterRes = await pool.query(
-      "SELECT wrestler_name FROM wrestlers WHERE team_id = $1",
-      [teamId]
-    );
-
-    res.json(rosterRes.rows.map(r => r.wrestler_name));
-  } catch (err) {
-    console.error("Error fetching team roster:", err);
-    res.status(500).send("Error fetching team roster.");
-  }
-});
-
 // Get team standings (include teams with zero points)
 app.get("/api/standings", async (req, res) => {
   try {
