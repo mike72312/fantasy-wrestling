@@ -213,7 +213,7 @@ app.get("/api/roster/:teamName", async (req, res) => {
       SELECT wrestler_name, points
       FROM wrestlers
       WHERE team_id = (
-        SELECT id FROM teams WHERE team_name = $1
+        SELECT id FROM teams WHERE team_name ILIKE $1
       )
       ORDER BY points DESC;
     `;
