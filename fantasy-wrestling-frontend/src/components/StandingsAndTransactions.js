@@ -41,15 +41,20 @@ const StandingsAndTransactions = () => {
       </table>
 
       <h2>Recent Transactions</h2>
-      <ul style={{ listStyleType: "none", padding: 0 }}>
-        {transactions.map((txn, idx) => (
-          <li key={idx} style={{ marginBottom: "12px", padding: "10px", borderBottom: "1px solid #ddd" }}>
-            <strong>{txn.timestamp}</strong> — {txn.description}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-};
+<ul style={{ listStyleType: "none", padding: 0 }}>
+  {transactions.map((txn, idx) => (
+    <li
+      key={idx}
+      style={{
+        marginBottom: "12px",
+        padding: "10px",
+        borderBottom: "1px solid #ddd",
+      }}
+    >
+      <strong>{new Date(txn.timestamp).toLocaleString()}</strong> —{" "}
+      <strong>{txn.team_name}</strong> {txn.action} <strong>{txn.wrestler_name}</strong>
+    </li>
+  ))}
+</ul>
 
 export default StandingsAndTransactions;
