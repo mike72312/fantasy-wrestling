@@ -1,88 +1,74 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
 const StandingsAndTransactions = () => {
   const [standings, setStandings] = useState([]);
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    // Fetch team standings
-    fetch("https://wrestling-backend2.onrender.com/api/standings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) {
-          console.error("❌ Invalid standings format:", data);
-          setStandings([]);
-        } else {
-          setStandings(data);
-        }
-      })
-      .catch((err) => {
-        console.error("❌ Failed to fetch standings", err);
-        setStandings([]);
+    axios
+      .get("https://wrestling-backend2.onrender.com/api/standings")
+      .then((response) => setStandings(response.data))
+      .catch((error) => {
+        console.error("Error fetching standings:", error);
+        alert("Error loading standings.");
       });
 
-    // Fetch transactions
-    fetch("https://wrestling-backend2.onrender.com/api/transactions")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) {
-          console.error("❌ Invalid transactions format:", data);
-          setTransactions([]);
-        } else {
-          setTransactions(data);
-        }
-      })
-      .catch((err) => {
-        console.error("❌ Failed to fetch transactions", err);
-        setTransactions([]);
+    axios
+      .get("https://wrestling-backend2.onrender.com/api/transactions")
+      .then((response) => setTransactions(response.data))
+      .catch((error) => {
+        console.error("Error fetching transactions:", error);
+        alert("Error loading transactions.");
       });
   }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Team Standings</h2>
-      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "40px" }}>
+    <div className="container">
+      <h2>Standings</h2>
+      <table className="standings-table">
         <thead>
-          <tr style={{ backgroundColor: "#f2f2f2" }}>
-            <th style={{ border: "1px solid #ddd", padding: "8px" }}>Rank</th>
-            <th style={{ border: "1px solid #ddd", padding: "8px" }}>Team Name</th>
-            <th style={{ border: "1px solid #ddd", padding: "8px" }}>Score</th>
+          <tr>
+            <th>Team</th>
+            <th>Score</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((team, index) => (
-            <tr key={team.team_name}>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{index + 1}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                <a
-                  href={`/team/${encodeURIComponent(team.team_name)}`}
-                  style={{ textDecoration: "none", color: "#007bff" }}
-                >
+            <tr key={index}>
+              <td>
+                <Link to={`/roster/${team.team_name}`}>
                   {team.team_name}
-                </a>
+                </Link>
               </td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{team.score}</td>
+              <td>{team.score}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <h2>Recent Transactions</h2>
-      <ul style={{ listStyleType: "none", padding: 0 }}>
-        {transactions.map((txn, idx) => (
-          <li
-            key={idx}
-            style={{
-              marginBottom: "12px",
-              padding: "10px",
-              borderBottom: "1px solid #ddd",
-            }}
-          >
-            <strong>{new Date(txn.timestamp).toLocaleString()}</strong> —{" "}
-            <strong>{txn.team_name}</strong> {txn.action} <strong>{txn.wrestler_name}</strong>
-          </li>
-        ))}
-      </ul>
+      <table className="transactions-table">
+        <thead>
+          <tr>
+            <th>Wrestler</th>
+            <th>Team</th>
+            <th>Action</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((tx, index) => (
+            <tr key={index}>
+              <td>{tx.wrestler_name}</td>
+              <td>{tx.team_name}</td>
+              <td>{tx.action}</td>
+              <td>{new Date(tx.timestamp).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

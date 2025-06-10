@@ -19,7 +19,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/league" element={<StandingsAndTransactions />} />
-        <Route path="/team/:teamName" element={<TeamRoster />} />
+        <Route path="/roster/:teamName" element={<TeamRoster />} />
       </Routes>
     </>
   );
