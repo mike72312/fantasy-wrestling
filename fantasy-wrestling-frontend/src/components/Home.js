@@ -49,14 +49,16 @@ const Home = () => {
       })
       .then((response) => {
         alert(response.data.message);
+
         // Update the UI by removing the dropped wrestler
         setRoster((prevRoster) =>
-          prevRoster.filter((wrestler) => wrestler !== wrestlerName)
+          prevRoster.filter((wrestler) => wrestler.wrestler_name !== wrestlerName)
         );
+
         // Add the dropped wrestler back to the available pool
         setAvailableWrestlers((prevAvailable) => [
           ...prevAvailable,
-          wrestlerName
+          { wrestler_name: wrestlerName, points: 0 }  // Default to 0 or adjust as needed
         ]);
       })
       .catch((error) => {
@@ -75,8 +77,8 @@ const Home = () => {
           roster.map((wrestler, index) => (
             <div className="card" key={index}>
               <div className="card-content">
-                <h4>{wrestler}</h4>
-                <button onClick={() => handleDropWrestler(wrestler)}>
+                <h4>{wrestler.wrestler_name} — {wrestler.points} pts</h4>
+                <button onClick={() => handleDropWrestler(wrestler.wrestler_name)}>
                   Drop
                 </button>
               </div>
