@@ -1,16 +1,13 @@
-// src/components/EventForm.js
 import React, { useState } from 'react';
 import axios from 'axios';
 
 const EventForm = () => {
-  const [message, setMessage] = useState(""); // For showing success/error messages
+  const [message, setMessage] = useState("");
 
   const handleFileChange = (e) => {
-    setMessage(""); // Clear any previous messages
+    setMessage("");
     const file = e.target.files[0];
-    if (file) {
-      handleUpload(file);
-    }
+    if (file) handleUpload(file);
   };
 
   const handleUpload = async (file) => {
@@ -19,11 +16,11 @@ const EventForm = () => {
 
     try {
       const response = await axios.post(
-        "https://wrestling-backend2.onrender.com/api/upload-csv", // Make sure this matches your backend endpoint
+        "https://wrestling-backend2.onrender.com/api/upload-csv",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
-      setMessage(response.data); // Display success message from the backend
+      setMessage(response.data);
     } catch (error) {
       console.error("Error uploading CSV:", error);
       setMessage("Error uploading CSV.");
@@ -31,15 +28,10 @@ const EventForm = () => {
   };
 
   return (
-    <div>
+    <div className="container">
       <h2>Upload Event Data (CSV)</h2>
-      <input
-        type="file"
-        accept=".csv"
-        onChange={handleFileChange}
-      />
-      {/* Display Success/Error Message */}
-      {message && <div className="message">{message}</div>}
+      <input type="file" accept=".csv" onChange={handleFileChange} />
+      {message && <div className="card">{message}</div>}
     </div>
   );
 };

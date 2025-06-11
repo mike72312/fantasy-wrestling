@@ -6,7 +6,8 @@ import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
 import Transactions from "./components/Transactions";
 import StandingsAndTransactions from "./components/StandingsAndTransactions";
-import TeamRoster from "./components/TeamRoster"; // Ensure this exists
+import TeamRoster from "./components/TeamRoster";
+import WrestlerProfile from "./components/WrestlerProfile";
 import './App.css';
 
 const App = () => {
@@ -20,6 +21,7 @@ const App = () => {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/league" element={<StandingsAndTransactions />} />
         <Route path="/roster/:teamName" element={<TeamRoster />} />
+        <Route path="/wrestler/:name" element={<WrestlerProfile />} />
       </Routes>
     </>
   );

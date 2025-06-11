@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 
 const AvailableWrestlers = () => {
-  console.log("🧪 AvailableWrestlers component loaded - v3");
-
   const [wrestlers, setWrestlers] = useState([]);
 
   useEffect(() => {
@@ -17,20 +15,14 @@ const AvailableWrestlers = () => {
       );
   }, []);
 
-  const handleAdd = (wrestlerNameRaw) => {
+  const handleAdd = (wrestlerName) => {
     const teamName = localStorage.getItem("teamName");
     if (!teamName) return alert("No team selected.");
-
-    const wrestlerName = wrestlerNameRaw || "Unnamed";
-
-    console.log("💡 Raw values:", { teamName, wrestlerName });
 
     const payload = {
       team_name: teamName,
       wrestler_name: wrestlerName,
     };
-
-    console.log("🚀 Submitting to backend:", payload);
 
     fetch("https://wrestling-backend2.onrender.com/api/addWrestler", {
       method: "POST",
@@ -45,7 +37,6 @@ const AvailableWrestlers = () => {
         setWrestlers((prev) =>
           prev.filter((w) => w.wrestler_name !== wrestlerName)
         );
-        console.log(`✅ Successfully added ${wrestlerName} to ${teamName}`);
       })
       .catch((err) => {
         console.error("❌ Error adding wrestler:", err);
@@ -53,39 +44,17 @@ const AvailableWrestlers = () => {
       });
   };
 
-  const getCardColor = (points) => {
-    if (points >= 30) return "#d4edda"; // green
-    if (points >= 10) return "#fff3cd"; // yellow
-    return "#f8d7da"; // red
-  };
-
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="container">
       <h2>Available Wrestlers</h2>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
-        {wrestlers.map((wrestler, idx) => {
-          const name = wrestler.wrestler_name || wrestler.name || "Unnamed";
-
-          return (
-            <div
-              key={idx}
-              style={{
-                backgroundColor: getCardColor(wrestler.points),
-                border: "1px solid #ccc",
-                borderRadius: "8px",
-                padding: "16px",
-                width: "200px",
-                boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-              }}
-            >
-              <h3 style={{ margin: "0 0 8px 0" }}>{name}</h3>
-              <p style={{ margin: "0 0 12px 0" }}>
-                Points: {wrestler.points ?? "N/A"}
-              </p>
-              <button onClick={() => handleAdd(wrestler.wrestler_name)}>Add</button>
-            </div>
-          );
-        })}
+      <div className="roster-list">
+        {wrestlers.map((wrestler, idx) => (
+          <div className="card" key={idx}>
+            <h3>{wrestler.wrestler_name}</h3>
+            <p>Points: {wrestler.points ?? "N/A"}</p>
+            <button onClick={() => handleAdd(wrestler.wrestler_name)}>Add</button>
+          </div>
+        ))}
       </div>
     </div>
   );
