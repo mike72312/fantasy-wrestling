@@ -68,6 +68,23 @@ app.get("/api/teams", async (req, res) => {
   }
 });
 
+app.get("/api/wrestler/:name", async (req, res) => {
+  try {
+    const name = decodeURIComponent(req.params.name);
+    const result = await pool.query(
+      "SELECT name, team_name, total_points FROM wrestlers WHERE name = $1",
+      [name]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Wrestler not found" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching wrestler:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ✅ Add a wrestler to a team
 app.post("/api/addWrestler", async (req, res) => {
   const { team_name, wrestler_name } = req.body;
