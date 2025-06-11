@@ -1,29 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const Home = () => {
   const [roster, setRoster] = useState([]);
   const [availableWrestlers, setAvailableWrestlers] = useState([]);
-  const teamName = localStorage.getItem('teamName');  // Get the team name from localStorage
+  const teamName = localStorage.getItem('teamName');
 
   useEffect(() => {
     if (teamName) {
-      // Fetch the team roster
       axios
         .get(`https://wrestling-backend2.onrender.com/api/roster/${teamName}`)
         .then((response) => {
-          setRoster(response.data);  // Set the roster data
+          setRoster(response.data);
         })
         .catch((error) => {
           console.error("Error fetching team roster:", error);
           alert("There was an error fetching the team roster.");
         });
 
-      // Fetch the available wrestlers
       axios
         .get("https://wrestling-backend2.onrender.com/api/availableWrestlers")
         .then((response) => {
-          setAvailableWrestlers(response.data);  // Set available wrestlers
+          setAvailableWrestlers(response.data);
         })
         .catch((error) => {
           console.error("Error fetching available wrestlers:", error);
@@ -49,16 +48,12 @@ const Home = () => {
       })
       .then((response) => {
         alert(response.data.message);
-
-        // Update the UI by removing the dropped wrestler
         setRoster((prevRoster) =>
           prevRoster.filter((wrestler) => wrestler.wrestler_name !== wrestlerName)
         );
-
-        // Add the dropped wrestler back to the available pool
         setAvailableWrestlers((prevAvailable) => [
           ...prevAvailable,
-          { wrestler_name: wrestlerName, points: 0 }  // Default to 0 or adjust as needed
+          { wrestler_name: wrestlerName, points: 0 }
         ]);
       })
       .catch((error) => {
@@ -77,7 +72,11 @@ const Home = () => {
           roster.map((wrestler, index) => (
             <div className="card" key={index}>
               <div className="card-content">
-                <h4>{wrestler.wrestler_name} — {wrestler.points} pts</h4>
+                <h4>
+                  <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
+                    {wrestler.wrestler_name}
+                  </Link> — {wrestler.points} pts
+                </h4>
                 <button onClick={() => handleDropWrestler(wrestler.wrestler_name)}>
                   Drop
                 </button>

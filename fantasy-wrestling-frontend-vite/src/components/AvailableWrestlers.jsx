@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
@@ -50,7 +51,11 @@ const AvailableWrestlers = () => {
       <div className="roster-list">
         {wrestlers.map((wrestler, idx) => (
           <div className="card" key={idx}>
-            <h3>{wrestler.wrestler_name}</h3>
+            <h3>
+              <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
+                {wrestler.wrestler_name}
+              </Link>
+            </h3>
             <p>Points: {wrestler.points ?? "N/A"}</p>
             <button onClick={() => handleAdd(wrestler.wrestler_name)}>Add</button>
           </div>
