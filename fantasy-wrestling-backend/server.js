@@ -1,224 +1,197 @@
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
+const cheerio = require("cheerio");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Test Route
-app.get("/test", (req, res) => {
-  res.json({ message: "Test route is working" });
-});
-
-// Middleware
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type"]
-}));
+app.use(cors());
 app.use(express.json());
 
-// PostgreSQL connection (Supabase)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
-// ✅ Get all available wrestlers (not on a team)
-app.get("/api/availableWrestlers", async (req, res) => {
-  try {
-    const query = `
-      SELECT wrestler_name, points
-      FROM wrestlers
-      WHERE team_id IS NULL;
-    `;
-    const result = await pool.query(query);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching available wrestlers:", err);
-    res.status(500).send("Error fetching available wrestlers.");
-  }
-});
-
-// ✅ Get transaction log
-app.get("/api/transactions", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT wrestler_name, team_name, action, timestamp
-      FROM transactions
-      ORDER BY timestamp DESC
-      LIMIT 100;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching transactions:", err);
-    res.status(500).send("Error fetching transactions.");
-  }
-});
-
-// ✅ Get all teams
-app.get("/api/teams", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT id, team_name FROM teams");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching teams:", err);
-    res.status(500).send("Error fetching teams.");
-  }
-});
-
-app.get("/api/wrestler/:name", async (req, res) => {
-  try {
-    const name = decodeURIComponent(req.params.name);
-    const result = await pool.query(
-      "SELECT name, team_name, total_points FROM wrestlers WHERE name = $1",
-      [name]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Wrestler not found" });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error("Error fetching wrestler:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Add a wrestler to a team
+// 🟢 Add Wrestler (with transaction logging)
 app.post("/api/addWrestler", async (req, res) => {
   const { team_name, wrestler_name } = req.body;
-  console.log("📩 Received POST /api/addWrestler:", req.body);
-
-  if (!team_name || !wrestler_name) {
-    return res.status(400).send("Team name or wrestler name is missing.");
-  }
-
   try {
-    // Log all currently available wrestlers
-    const debugAvailable = await pool.query(
-      `SELECT wrestler_name FROM wrestlers WHERE team_id IS NULL`
+    await pool.query(
+      `INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'add')`,
+      [team_name, wrestler_name]
     );
-    console.log("🧪 Available wrestlers:", debugAvailable.rows.map(r => r.wrestler_name));
+    await pool.query(
+      `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
+      [team_name, wrestler_name]
+    );
+    res.status(200).json({ message: "Wrestler added" });
+  } catch (err) {
+    console.error("❌ Error adding wrestler:", err);
+    res.status(500).send("Failed to add wrestler");
+  }
+});
 
-    // Use case-insensitive match for wrestler_name
-    const available = await pool.query(
-      `SELECT * FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1) AND team_id IS NULL`,
+// 🔴 Drop Wrestler
+app.post("/api/dropWrestler", async (req, res) => {
+  const { team_name, wrestler_name } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'drop')`,
+      [team_name, wrestler_name]
+    );
+    await pool.query(
+      `UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1`,
       [wrestler_name]
     );
-    if (available.rows.length === 0) {
-      return res.status(400).send("Wrestler is already assigned or doesn't exist.");
-    }
-
-    const teamRes = await pool.query(
-      `SELECT id FROM teams WHERE team_name = $1`,
-      [team_name]
-    );
-    if (teamRes.rows.length === 0) {
-      return res.status(400).send("Team does not exist.");
-    }
-
-    const teamId = teamRes.rows[0].id;
-
-    await pool.query(
-      `UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2)`,
-      [teamId, wrestler_name]
-    );
-
-    await pool.query(
-      `INSERT INTO transactions (wrestler_name, team_name, action) VALUES ($1, $2, 'add')`,
-      [wrestler_name, team_name]
-    );
-
-    res.json({ message: `Wrestler ${wrestler_name} added to team ${team_name}.` });
+    res.status(200).json({ message: "Wrestler dropped" });
   } catch (err) {
-    console.error("Error adding wrestler:", err);
-    res.status(500).send("Error adding wrestler to the team.");
+    console.error("❌ Error dropping wrestler:", err);
+    res.status(500).send("Failed to drop wrestler");
   }
 });
 
-// ✅ Drop a wrestler from a team
-app.post("/api/dropWrestler", async (req, res) => {
-  const { teamName, wrestlerName } = req.body;
-
-  if (!teamName || !wrestlerName) {
-    return res.status(400).send("Team name or wrestler name is missing.");
-  }
-
+// 🔄 Get Available Wrestlers
+app.get("/api/availableWrestlers", async (req, res) => {
   try {
-    const teamRes = await pool.query(
-      `SELECT id FROM teams WHERE team_name = $1`,
-      [teamName]
+    const result = await pool.query(
+      `SELECT wrestler_name, brand, points FROM wrestlers WHERE team_id IS NULL`
     );
-    if (teamRes.rows.length === 0) {
-      return res.status(400).send("Team does not exist.");
-    }
-
-    const teamId = teamRes.rows[0].id;
-
-    const dropRes = await pool.query(
-      `UPDATE wrestlers SET team_id = NULL WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2`,
-      [wrestlerName, teamId]
-    );
-
-    if (dropRes.rowCount === 0) {
-      return res.status(400).send("Wrestler not found on this team's roster.");
-    }
-
-    await pool.query(
-      `INSERT INTO transactions (wrestler_name, team_name, action) VALUES ($1, $2, 'drop')`,
-      [wrestlerName, teamName]
-    );
-
-    res.json({ message: `Wrestler ${wrestlerName} dropped from team ${teamName}.` });
-  } catch (err) {
-    console.error("Error dropping wrestler:", err);
-    res.status(500).send("Error dropping wrestler from the team.");
-  }
-});
-
-// Get team standings (include teams with zero points)
-app.get("/api/standings", async (req, res) => {
-  try {
-    const query = `
-      SELECT 
-        t.team_name, 
-        COALESCE(SUM(w.points), 0) AS score
-      FROM teams t
-      LEFT JOIN wrestlers w ON w.team_id = t.id
-      GROUP BY t.team_name
-      ORDER BY score DESC;
-    `;
-    const result = await pool.query(query);
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching standings:", err); // <== Show full error
-    res.status(500).json({ error: "Error fetching standings" });
+    console.error("❌ Error fetching available wrestlers:", err);
+    res.status(500).send("Error");
   }
 });
 
-//Get Team Rosters
-app.get("/api/roster/:teamName", async (req, res) => {
-  const { teamName } = req.params;
+// 📊 Get Team Points (based on active roster duration)
+app.get("/api/teamPoints/:team", async (req, res) => {
+  const team = req.params.team;
   try {
-    const query = `
-      SELECT wrestler_name, points
-      FROM wrestlers
-      WHERE team_id = (
-        SELECT id FROM teams WHERE team_name ILIKE $1
-      )
-      ORDER BY points DESC;
-    `;
-    const result = await pool.query(query, [teamName]);
-    res.json(result.rows);
+    const result = await pool.query(`
+      SELECT SUM(es.points) as total_points
+      FROM event_scores es
+      JOIN transactions t ON es.wrestler_name = t.wrestler_name
+      WHERE t.team_name = $1
+        AND es.event_date >= t.timestamp
+        AND NOT EXISTS (
+          SELECT 1 FROM transactions d
+          WHERE d.wrestler_name = t.wrestler_name
+            AND d.team_name = $1
+            AND d.action = 'drop'
+            AND d.timestamp > t.timestamp
+            AND es.event_date >= d.timestamp
+        )
+    `, [team]);
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error("❌ Error fetching team roster:", err);
-    res.status(500).json({ error: "Error fetching team roster" });
+    console.error("❌ Error calculating team points:", err);
+    res.status(500).send("Error");
   }
 });
 
-// ✅ Start the server
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server is running on port ${port}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+// 🔁 Propose Trade
+app.post("/api/proposeTrade", async (req, res) => {
+  const { proposing_team, receiving_team, offered_wrestlers, requested_wrestlers } = req.body;
+  try {
+    await pool.query(
+      `INSERT INTO trade_requests (proposing_team, receiving_team, offered_wrestlers, requested_wrestlers)
+       VALUES ($1, $2, $3, $4)`,
+      [proposing_team, receiving_team, offered_wrestlers, requested_wrestlers]
+    );
+    res.status(200).json({ message: "Trade proposed" });
+  } catch (err) {
+    console.error("❌ Error proposing trade:", err);
+    res.status(500).send("Trade error");
+  }
+});
+
+// ✅ Respond to Trade
+app.post("/api/respondToTrade", async (req, res) => {
+  const { trade_id, accepted } = req.body;
+  try {
+    const trade = await pool.query(`SELECT * FROM trade_requests WHERE id = $1`, [trade_id]);
+    if (trade.rows.length === 0) return res.status(404).send("Trade not found");
+
+    if (accepted) {
+      const t = trade.rows[0];
+      for (const wrestler of t.offered_wrestlers) {
+        await pool.query(`UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`, [t.receiving_team, wrestler]);
+        await pool.query(`INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'drop')`, [t.proposing_team, wrestler]);
+        await pool.query(`INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'add')`, [t.receiving_team, wrestler]);
+      }
+      for (const wrestler of t.requested_wrestlers) {
+        await pool.query(`UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`, [t.proposing_team, wrestler]);
+        await pool.query(`INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'drop')`, [t.receiving_team, wrestler]);
+        await pool.query(`INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'add')`, [t.proposing_team, wrestler]);
+      }
+    }
+
+    await pool.query(`UPDATE trade_requests SET status = $1 WHERE id = $2`, [accepted ? "accepted" : "rejected", trade_id]);
+    res.status(200).json({ message: `Trade ${accepted ? "accepted" : "rejected"}` });
+  } catch (err) {
+    console.error("❌ Error responding to trade:", err);
+    res.status(500).send("Error");
+  }
+});
+
+// 📥 Import Event (from HTML)
+app.post("/api/importEvent", async (req, res) => {
+  const { html, event_name, event_date } = req.body;
+  try {
+    const $ = cheerio.load(html);
+    const eventResult = await pool.query(
+      `INSERT INTO events (event_name, event_date) VALUES ($1, $2) RETURNING id`,
+      [event_name, event_date]
+    );
+    const event_id = eventResult.rows[0].id;
+
+    $(".match-card").each((_, el) => {
+      const name = $(el).find(".wrestler-name").text().trim();
+      const pts = parseInt($(el).find(".points").text().trim()) || 0;
+      if (name) {
+        pool.query(
+          `INSERT INTO event_scores (event_id, wrestler_name, points) VALUES ($1, $2, $3)`,
+          [event_id, name, pts]
+        );
+      }
+    });
+
+    res.status(200).json({ message: "Event imported" });
+  } catch (err) {
+    console.error("❌ Error importing event:", err);
+    res.status(500).send("Error");
+  }
+});
+
+// 📤 Get Event Archive
+app.get("/api/events", async (req, res) => {
+  try {
+    const events = await pool.query(`SELECT * FROM events ORDER BY event_date DESC`);
+    res.json(events.rows);
+  } catch (err) {
+    console.error("❌ Error getting events:", err);
+    res.status(500).send("Error");
+  }
+});
+
+// 📤 Get Scores for One Event
+app.get("/api/eventScores/:eventId", async (req, res) => {
+  const { eventId } = req.params;
+  try {
+    const scores = await pool.query(
+      `SELECT wrestler_name, points FROM event_scores WHERE event_id = $1 ORDER BY points DESC`,
+      [eventId]
+    );
+    res.json(scores.rows);
+  } catch (err) {
+    console.error("❌ Error getting scores:", err);
+    res.status(500).send("Error");
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });

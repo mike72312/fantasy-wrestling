@@ -1,37 +1,64 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
 
 const EventForm = () => {
-  const [message, setMessage] = useState("");
+  const [file, setFile] = useState(null);
+  const [eventName, setEventName] = useState("");
+  const [eventDate, setEventDate] = useState("");
 
-  const handleFileChange = (e) => {
-    setMessage("");
-    const file = e.target.files[0];
-    if (file) handleUpload(file);
-  };
-
-  const handleUpload = async (file) => {
-    const formData = new FormData();
-    formData.append("csvFile", file);
-
-    try {
-      const response = await axios.post(
-        "https://wrestling-backend2.onrender.com/api/upload-csv",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      setMessage(response.data);
-    } catch (error) {
-      console.error("Error uploading CSV:", error);
-      setMessage("Error uploading CSV.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file || !eventName || !eventDate) {
+      alert("All fields required.");
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const html = reader.result;
+
+      try {
+        const response = await fetch("https://wrestling-backend2.onrender.com/api/importEvent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ html, event_name: eventName, event_date: eventDate }),
+        });
+
+        if (!response.ok) throw new Error("Upload failed");
+        alert("Event imported successfully!");
+      } catch (err) {
+        console.error("❌ Upload failed:", err);
+        alert("Error uploading event.");
+      }
+    };
+
+    reader.readAsText(file);
   };
 
   return (
     <div className="container">
-      <h2>Upload Event Data (CSV)</h2>
-      <input type="file" accept=".csv" onChange={handleFileChange} />
-      {message && <div className="card">{message}</div>}
+      <h2>Import Event Results</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          placeholder="Event Name"
+          value={eventName}
+          onChange={(e) => setEventName(e.target.value)}
+          required
+        />
+        <input
+          type="date"
+          value={eventDate}
+          onChange={(e) => setEventDate(e.target.value)}
+          required
+        />
+        <input
+          type="file"
+          accept=".html"
+          onChange={(e) => setFile(e.target.files[0])}
+          required
+        />
+        <button type="submit">Import</button>
+      </form>
     </div>
   );
 };

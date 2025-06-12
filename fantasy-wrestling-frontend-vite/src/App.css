@@ -1,273 +1,109 @@
-/* Global Styles */
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: Arial, sans-serif;
   margin: 0;
-  padding: 0;
   background-color: #f4f4f4;
   color: #333;
 }
 
 .container {
-  max-width: 1200px;
+  padding: 2rem;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 20px;
-}
-
-/* Card Layout for Each Wrestler */
-.card {
   background-color: white;
-  padding: 15px;
-  margin: 10px;
   border-radius: 8px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: box-shadow 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
 }
 
-.card:hover {
-  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+h1, h2, h3 {
+  color: #222;
+  margin-top: 0;
 }
 
-.card-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card-content h4 {
-  margin: 0;
-}
-
-.card-content button {
-  padding: 8px 15px;
-  background-color: #f44336;  /* Red for Drop button */
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-.card-content button:hover {
-  background-color: #e41c1c;
-  transform: scale(1.05);
-}
-
-/* Flexbox Grid for roster list */
-.roster-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: flex-start;
-}
-
-/* Styling for empty roster message */
-.empty-roster {
-  font-size: 18px;
-  color: #888;
-  text-align: center;
-}
-
-/* Header Styling */
-h2 {
-  font-size: 2em;
-  margin-bottom: 20px;
-  color: #333;
-}
-
-/* Flexbox for available wrestlers page */
-.wrestler-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  justify-content: flex-start;
-}
-
-/* Available Wrestlers Page Styling */
-ul.wrestlers-list {
-  list-style-type: none;
-  padding: 0;
-}
-
-ul.wrestlers-list li {
-  background-color: #fff;
-  margin: 5px 0;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-ul.wrestlers-list li:hover {
-  background-color: #f0f0f0;
-}
-
-/* Button Styling */
-button {
-  padding: 8px 12px;
-  font-size: 16px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-button:hover {
-  background-color: #f1f1f1;
-  transform: scale(1.05);
-}
-
-/* Navbar Styling */
 nav {
-  background: linear-gradient(90deg, #ff6a00, #d84b16);  /* Orange to deep red gradient */
-  color: white;
-  padding: 10px 20px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  border-radius: 5px;
-}
-
-nav ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-}
-
-nav li {
-  display: inline-block;
-  margin-right: 20px;
-}
-
-nav li:last-child {
-  margin-right: 0;
+  background-color: #222;
+  padding: 1rem;
 }
 
 nav a {
   color: white;
+  margin-right: 1rem;
   text-decoration: none;
-  padding: 8px 15px;
-  font-size: 16px;
-  border-radius: 5px;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-weight: bold;
 }
 
 nav a:hover {
-  background-color: #fff;
-  color: #333;
-}
-
-nav a.active {
-  background-color: #fff;
-  color: #ff6a00;
-}
-
-nav button {
-  background-color: #ff5733;  /* Orange button */
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  cursor: pointer;
-  font-size: 16px;
-  border-radius: 5px;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-}
-
-nav button:hover {
-  background-color: #e84e26;
-  transform: scale(1.05);
-}
-
-/* Navbar Mobile Styling */
-@media (max-width: 768px) {
-  nav ul {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  nav li {
-    margin-bottom: 10px;
-  }
-
-  nav li:last-child {
-    margin-bottom: 0;
-  }
-}
-
-/* Login Page Styling */
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f4f4f4;
-}
-
-.login-form {
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  width: 300px;
-  text-align: center;
-}
-
-.login-form input {
-  width: 100%;
-  padding: 8px 12px;
-  margin: 10px 0;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-}
-
-.login-form button {
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  width: 100%;
-  border-radius: 5px;
-}
-
-.login-form button:hover {
-  background-color: #45a049;
-}
-
-/* Available Wrestlers Page */
-ul.wrestlers-list {
-  list-style-type: none;
-  padding: 0;
-}
-
-ul.wrestlers-list li {
-  background-color: #fff;
-  margin: 5px 0;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-ul.wrestlers-list li:hover {
-  background-color: #f0f0f0;
-}
-
-/* Page title */
-h2, h3 {
-  color: #333;
-  font-size: 24px;
-  margin-bottom: 20px;
-}
-
-/* General Page Layout */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  text-decoration: underline;
 }
 
 button {
-  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="file"] {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+form {
+  margin-top: 1rem;
+}
+
+ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+ul li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.card {
+  background: #fff;
+  padding: 1rem;
+  margin: 1rem 0;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+.wrestler-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.wrestler-table th,
+.wrestler-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.wrestler-table th {
+  background-color: #f0f0f0;
+}
+
+a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }
