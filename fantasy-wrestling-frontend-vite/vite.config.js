@@ -5,10 +5,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: 'dist',
-    sourcemap: true, // ✅ Enables readable stack traces in production
+    sourcemap: true,
     emptyOutDir: true
   },
   preview: {
-    allowedHosts: ['wrestling-frontend.onrender.com'] // ✅ Adjust for your Render domain
+    allowedHosts: ['wrestling-frontend.onrender.com']
   }
 });
