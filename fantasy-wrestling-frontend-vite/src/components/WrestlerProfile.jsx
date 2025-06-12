@@ -6,7 +6,7 @@ const WrestlerProfile = () => {
   const [wrestler, setWrestler] = useState(null);
 
   useEffect(() => {
-    fetch(`https://wrestling-backend2.onrender.com/api/wrestler/${encodeURIComponent(name)}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${encodeURIComponent(name)}`)
       .then((res) => res.json())
       .then((data) => setWrestler(data))
       .catch((err) => console.error("❌ Error loading wrestler:", err));

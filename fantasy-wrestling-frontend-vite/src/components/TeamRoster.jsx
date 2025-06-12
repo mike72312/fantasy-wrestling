@@ -7,7 +7,7 @@ const TeamRoster = () => {
   const [roster, setRoster] = useState([]);
 
   useEffect(() => {
-    fetch(`https://wrestling-backend2.onrender.com/api/roster/${teamName}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
       .then((res) => res.json())
       .then((data) => setRoster(data))
       .catch((err) => console.error("❌ Error loading roster:", err));
@@ -28,7 +28,7 @@ const TeamRoster = () => {
     if (isRestricted) return alert("Cannot drop during event hours (Mon/Fri/Sat 8-11pm ET).");
 
     try {
-      const res = await fetch("https://wrestling-backend2.onrender.com/api/dropWrestler", {
+      const res = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ team_name: teamName, wrestler_name: wrestlerName }),

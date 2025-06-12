@@ -7,7 +7,7 @@ const StandingsAndTransactions = () => {
   useEffect(() => {
     Promise.all(
       teams.map((team) =>
-        fetch(`https://wrestling-backend2.onrender.com/api/teamPoints/${team}`)
+        fetch(`https://fantasy-wrestling-backend.onrender.com/api/teamPoints/${team}`)
           .then((res) => res.json())
           .then((data) => ({ team, points: data.total_points || 0 }))
       )
