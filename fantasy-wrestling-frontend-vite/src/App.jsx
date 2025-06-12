@@ -7,7 +7,7 @@ import Transactions from './components/Transactions';
 import StandingsAndTransactions from './components/StandingsAndTransactions';
 import TeamRoster from './components/TeamRoster';
 import WrestlerProfile from './components/WrestlerProfile';
-import EventForm from './components/EventHistory';
+import EventForm from './components/EventForm';
 
 const App = () => {
   return (
