@@ -6,12 +6,22 @@ import './App.css';
 
 // ✅ Global error handler for runtime JS errors
 window.addEventListener("error", (e) => {
-  console.error("🌐 Global JS Error:", e.message, e.filename, `Line: ${e.lineno}`);
+  console.error("🌐 Global JS Error:", {
+    message: e.message,
+    filename: e.filename,
+    lineno: e.lineno,
+    colno: e.colno,
+    error: e.error
+  });
 });
 
-// ✅ Global error handler for unhandled promise rejections (e.g. failed fetch)
+// ✅ Global handler for unhandled promise rejections
 window.addEventListener("unhandledrejection", (e) => {
-  console.error("💥 Unhandled Promise Rejection:", e.reason);
+  console.error("💥 Unhandled Promise Rejection:", {
+    reason: e.reason,
+    stack: e.reason?.stack,
+    message: e.reason?.message
+  });
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
