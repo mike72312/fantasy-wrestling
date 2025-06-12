@@ -15,8 +15,16 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// 🟢 Add Wrestler (with transaction logging)
+// 🟢 Add Wrestler (with server-side restriction)
 app.post("/api/addWrestler", async (req, res) => {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const restricted = (day === 1 || day === 5 || day === 6) && hour >= 20 && hour < 23;
+  if (restricted) {
+    return res.status(403).json({ error: "Add/drop not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
+  }
+
   const { team_name, wrestler_name } = req.body;
   try {
     await pool.query(
@@ -34,8 +42,16 @@ app.post("/api/addWrestler", async (req, res) => {
   }
 });
 
-// 🔴 Drop Wrestler
+// 🔴 Drop Wrestler (with restriction)
 app.post("/api/dropWrestler", async (req, res) => {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const restricted = (day === 1 || day === 5 || day === 6) && hour >= 20 && hour < 23;
+  if (restricted) {
+    return res.status(403).json({ error: "Add/drop not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
+  }
+
   const { team_name, wrestler_name } = req.body;
   try {
     await pool.query(
@@ -66,7 +82,7 @@ app.get("/api/availableWrestlers", async (req, res) => {
   }
 });
 
-// 📊 Get Team Points (based on active roster duration)
+// 📊 Get Team Points
 app.get("/api/teamPoints/:team", async (req, res) => {
   const team = req.params.team;
   try {
@@ -92,8 +108,16 @@ app.get("/api/teamPoints/:team", async (req, res) => {
   }
 });
 
-// 🔁 Propose Trade
+// 🔁 Propose Trade (with restriction)
 app.post("/api/proposeTrade", async (req, res) => {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const restricted = (day === 1 || day === 5 || day === 6) && hour >= 20 && hour < 23;
+  if (restricted) {
+    return res.status(403).json({ error: "Trades are not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
+  }
+
   const { proposing_team, receiving_team, offered_wrestlers, requested_wrestlers } = req.body;
   try {
     await pool.query(
@@ -108,8 +132,16 @@ app.post("/api/proposeTrade", async (req, res) => {
   }
 });
 
-// ✅ Respond to Trade
+// ✅ Respond to Trade (with restriction)
 app.post("/api/respondToTrade", async (req, res) => {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+  const restricted = (day === 1 || day === 5 || day === 6) && hour >= 20 && hour < 23;
+  if (restricted) {
+    return res.status(403).json({ error: "Trades are not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
+  }
+
   const { trade_id, accepted } = req.body;
   try {
     const trade = await pool.query(`SELECT * FROM trade_requests WHERE id = $1`, [trade_id]);
@@ -137,7 +169,7 @@ app.post("/api/respondToTrade", async (req, res) => {
   }
 });
 
-// 📥 Import Event (from HTML)
+// 📥 Import Event (safe version)
 app.post("/api/importEvent", async (req, res) => {
   const { html, event_name, event_date } = req.body;
   try {
@@ -148,16 +180,23 @@ app.post("/api/importEvent", async (req, res) => {
     );
     const event_id = eventResult.rows[0].id;
 
-    $(".match-card").each((_, el) => {
+    const matches = $(".match-card");
+    if (!matches.length) {
+      console.warn("❌ No .match-card elements found");
+      return res.status(400).json({ error: "No match results found in uploaded HTML." });
+    }
+
+    for (const el of matches) {
       const name = $(el).find(".wrestler-name").text().trim();
-      const pts = parseInt($(el).find(".points").text().trim()) || 0;
+      const pointsText = $(el).find(".points").text().trim();
+      const pts = parseInt(pointsText) || 0;
       if (name) {
-        pool.query(
+        await pool.query(
           `INSERT INTO event_scores (event_id, wrestler_name, points) VALUES ($1, $2, $3)`,
           [event_id, name, pts]
         );
       }
-    });
+    }
 
     res.status(200).json({ message: "Event imported" });
   } catch (err) {
