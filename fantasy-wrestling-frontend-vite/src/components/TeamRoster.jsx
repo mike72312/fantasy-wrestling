@@ -7,7 +7,7 @@ const TeamRoster = () => {
   const [roster, setRoster] = useState([]);
 
   useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/teamRoster/${teamName}`)
       .then((res) => res.json())
       .then((data) => setRoster(data))
       .catch((err) => console.error("❌ Error loading roster:", err));
