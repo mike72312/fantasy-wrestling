@@ -2,16 +2,21 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const WrestlerProfile = () => {
-  const { name } = useParams();
+  const { wrestlerName } = useParams();
   const [wrestler, setWrestler] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${encodeURIComponent(name)}`)
-      .then((res) => res.json())
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${encodeURIComponent(wrestlerName)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
       .then((data) => setWrestler(data))
-      .catch((err) => console.error("❌ Error loading wrestler:", err));
-  }, [name]);
+      .catch(() => setError(true));
+  }, [wrestlerName]);
 
+  if (error) return <p>❌ Wrestler not found.</p>;
   if (!wrestler) return <p>Loading wrestler...</p>;
 
   return (
