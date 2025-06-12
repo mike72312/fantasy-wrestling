@@ -11,3 +11,4 @@ const App = () => {
     </Router>
   );
 };
+export default NavBar;
