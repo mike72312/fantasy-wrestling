@@ -169,7 +169,7 @@ app.post("/api/respondToTrade", async (req, res) => {
   }
 });
 
-// 📥 Import Event (safe version)
+// 📥 Import Event (DropTheBelt compatible)
 app.post("/api/importEvent", async (req, res) => {
   const { html, event_name, event_date } = req.body;
   try {
@@ -180,21 +180,24 @@ app.post("/api/importEvent", async (req, res) => {
     );
     const event_id = eventResult.rows[0].id;
 
-    const matches = $(".match-card");
+    const matches = $("ol li");
     if (!matches.length) {
-      console.warn("❌ No .match-card elements found");
-      return res.status(400).json({ error: "No match results found in uploaded HTML." });
+      console.warn("❌ No match list items found");
+      return res.status(400).json({ error: "No matches found in uploaded HTML." });
     }
 
     for (const el of matches) {
-      const name = $(el).find(".wrestler-name").text().trim();
-      const pointsText = $(el).find(".points").text().trim();
-      const pts = parseInt(pointsText) || 0;
-      if (name) {
-        await pool.query(
-          `INSERT INTO event_scores (event_id, wrestler_name, points) VALUES ($1, $2, $3)`,
-          [event_id, name, pts]
-        );
+      const text = $(el).text().trim();
+      const nameMatch = text.match(/^(\\D+?)\\s+(\\d+)\\s+pts/i);
+      if (nameMatch) {
+        const name = nameMatch[1].trim();
+        const pts = parseInt(nameMatch[2]);
+        if (name && pts) {
+          await pool.query(
+            `INSERT INTO event_scores (event_id, wrestler_name, points) VALUES ($1, $2, $3)`,
+            [event_id, name, pts]
+          );
+        }
       }
     }
 
