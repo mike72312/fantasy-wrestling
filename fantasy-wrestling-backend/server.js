@@ -15,7 +15,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false },
 });
 
-// 🟢 Add Wrestler (with server-side restriction)
+// 🟢 Add Wrestler (with server-side restriction + team_name → team_id)
 app.post("/api/addWrestler", async (req, res) => {
   const now = new Date();
   const day = now.getDay();
@@ -27,13 +27,17 @@ app.post("/api/addWrestler", async (req, res) => {
 
   const { team_name, wrestler_name } = req.body;
   try {
+    const teamRes = await pool.query(`SELECT id FROM teams WHERE LOWER(name) = LOWER($1)`, [team_name]);
+    if (teamRes.rows.length === 0) return res.status(400).json({ error: "Invalid team name" });
+    const team_id = teamRes.rows[0].id;
+
     await pool.query(
       `INSERT INTO transactions (team_name, wrestler_name, action) VALUES ($1, $2, 'add')`,
       [team_name, wrestler_name]
     );
     await pool.query(
       `UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2`,
-      [team_name, wrestler_name]
+      [team_id, wrestler_name]
     );
     res.status(200).json({ message: "Wrestler added" });
   } catch (err) {
@@ -108,14 +112,14 @@ app.get("/api/teamPoints/:team", async (req, res) => {
   }
 });
 
-// 🔁 Propose Trade (with restriction)
+// 🔁 Propose Trade
 app.post("/api/proposeTrade", async (req, res) => {
   const now = new Date();
   const day = now.getDay();
   const hour = now.getHours();
   const restricted = (day === 1 || day === 5 || day === 6) && hour >= 20 && hour < 23;
   if (restricted) {
-    return res.status(403).json({ error: "Trades are not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
+    return res.status(403).json({ error: "Trades not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
   }
 
   const { proposing_team, receiving_team, offered_wrestlers, requested_wrestlers } = req.body;
@@ -132,14 +136,14 @@ app.post("/api/proposeTrade", async (req, res) => {
   }
 });
 
-// ✅ Respond to Trade (with restriction)
+// ✅ Respond to Trade
 app.post("/api/respondToTrade", async (req, res) => {
   const now = new Date();
   const day = now.getDay();
   const hour = now.getHours();
   const restricted = (day === 1 || day === 5 || day === 6) && hour >= 20 && hour < 23;
   if (restricted) {
-    return res.status(403).json({ error: "Trades are not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
+    return res.status(403).json({ error: "Trades not allowed during event hours (Mon/Fri/Sat 8–11pm ET)" });
   }
 
   const { trade_id, accepted } = req.body;
@@ -182,22 +186,19 @@ app.post("/api/importEvent", async (req, res) => {
 
     const matches = $("ol li");
     if (!matches.length) {
-      console.warn("❌ No match list items found");
       return res.status(400).json({ error: "No matches found in uploaded HTML." });
     }
 
     for (const el of matches) {
       const text = $(el).text().trim();
-      const nameMatch = text.match(/^(\\D+?)\\s+(\\d+)\\s+pts/i);
-      if (nameMatch) {
-        const name = nameMatch[1].trim();
-        const pts = parseInt(nameMatch[2]);
-        if (name && pts) {
-          await pool.query(
-            `INSERT INTO event_scores (event_id, wrestler_name, points) VALUES ($1, $2, $3)`,
-            [event_id, name, pts]
-          );
-        }
+      const match = text.match(/^(.+?)\s+(\d+)\s+pts/i);
+      if (match) {
+        const name = match[1].trim();
+        const pts = parseInt(match[2]);
+        await pool.query(
+          `INSERT INTO event_scores (event_id, wrestler_name, points, event_date) VALUES ($1, $2, $3, $4)`,
+          [event_id, name, pts, event_date]
+        );
       }
     }
 
@@ -208,7 +209,24 @@ app.post("/api/importEvent", async (req, res) => {
   }
 });
 
-// 📤 Get Event Archive
+// 📤 Get Team Roster
+app.get("/api/teamRoster/:team", async (req, res) => {
+  const team = req.params.team;
+  try {
+    const result = await pool.query(
+      `SELECT wrestler_name, brand, points FROM wrestlers WHERE team_id = (
+        SELECT id FROM teams WHERE LOWER(name) = LOWER($1)
+      )`,
+      [team]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching team roster:", err);
+    res.status(500).send("Error");
+  }
+});
+
+// 📤 Get All Events
 app.get("/api/events", async (req, res) => {
   try {
     const events = await pool.query(`SELECT * FROM events ORDER BY event_date DESC`);
@@ -219,7 +237,7 @@ app.get("/api/events", async (req, res) => {
   }
 });
 
-// 📤 Get Scores for One Event
+// 📤 Get Scores for a Specific Event
 app.get("/api/eventScores/:eventId", async (req, res) => {
   const { eventId } = req.params;
   try {
@@ -230,21 +248,6 @@ app.get("/api/eventScores/:eventId", async (req, res) => {
     res.json(scores.rows);
   } catch (err) {
     console.error("❌ Error getting scores:", err);
-    res.status(500).send("Error");
-  }
-});
-
-// 🧾 Get Team Roster
-app.get("/api/teamRoster/:team", async (req, res) => {
-  const team = req.params.team;
-  try {
-    const result = await pool.query(
-      `SELECT wrestler_name, brand, points FROM wrestlers WHERE team_id = $1`,
-      [team]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching team roster:", err);
     res.status(500).send("Error");
   }
 });
