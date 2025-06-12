@@ -22,7 +22,7 @@ const App = () => {
           <Route path="/standings" element={<StandingsAndTransactions />} />
           <Route path="/roster/:teamName" element={<TeamRoster />} />
           <Route path="/wrestler/:wrestlerName" element={<WrestlerProfile />} />
-          <Route path="/events" element={<EventHistory />} />
+          <Route path="/events" element={<EventForm />} />
         </Routes>
       </div>
     </Router>
