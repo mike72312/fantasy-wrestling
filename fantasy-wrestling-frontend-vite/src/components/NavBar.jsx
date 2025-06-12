@@ -1,7 +1,14 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const NavBar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("teamName");
+    navigate("/login");
+  };
+
   return (
     <nav style={{ background: "#222", padding: "1rem" }}>
       <Link to="/" style={{ color: "white", marginRight: "1rem" }}>Home</Link>
@@ -9,6 +16,7 @@ const NavBar = () => {
       <Link to="/standings" style={{ color: "white", marginRight: "1rem" }}>Standings</Link>
       <Link to="/transactions" style={{ color: "white", marginRight: "1rem" }}>Transactions</Link>
       <Link to="/import-event" style={{ color: "white", marginRight: "1rem" }}>Import Event</Link>
+      <button onClick={handleLogout} style={{ marginLeft: "1rem", padding: "0.5rem 1rem" }}>Logout</button>
     </nav>
   );
 };
