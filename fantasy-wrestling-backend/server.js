@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
@@ -22,13 +23,9 @@ app.get("/test", (req, res) => {
 // Get available wrestlers (not on a team)
 app.get("/api/availableWrestlers", async (req, res) => {
   try {
-    const query = `
-      SELECT wrestler_name, brand, points
-      FROM wrestlers
-      WHERE team_id IS NULL;
-    `;
+    const query = `SELECT wrestler_name FROM wrestlers WHERE team_id IS NULL;`;
     const result = await pool.query(query);
-    res.json(result.rows); // ✅ Send full objects
+    res.json(result.rows.map(row => row.wrestler_name));
   } catch (err) {
     console.error("Error fetching available wrestlers:", err);
     res.status(500).send("Error fetching available wrestlers");
@@ -57,7 +54,7 @@ app.get("/api/roster/:teamName", async (req, res) => {
   }
 });
 
-// Add a wrestler to a team (case-insensitive)
+// Add a wrestler to a team
 app.post("/api/addWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
   try {
@@ -65,10 +62,7 @@ app.post("/api/addWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query(
-      "UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2) AND team_id IS NULL",
-      [teamId, wrestlerName]
-    );
+    await pool.query("UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2) AND team_id IS NULL", [teamId, wrestlerName]);
     res.json({ message: `${wrestlerName} added to ${teamName}` });
   } catch (err) {
     console.error("Error adding wrestler:", err);
@@ -76,7 +70,7 @@ app.post("/api/addWrestler", async (req, res) => {
   }
 });
 
-// Drop a wrestler from a team (case-insensitive)
+// Drop a wrestler from a team
 app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
   try {
@@ -84,10 +78,7 @@ app.post("/api/dropWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query(
-      "UPDATE wrestlers SET team_id = NULL WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2",
-      [wrestlerName, teamId]
-    );
+    await pool.query("UPDATE wrestlers SET team_id = NULL WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2", [wrestlerName, teamId]);
     res.json({ message: `${wrestlerName} dropped from ${teamName}` });
   } catch (err) {
     console.error("Error dropping wrestler:", err);
@@ -111,7 +102,7 @@ app.get("/api/teamPoints/:teamName", async (req, res) => {
   }
 });
 
-// Propose a trade
+// Trades API
 app.post("/api/proposeTrade", async (req, res) => {
   const { offeringTeam, receivingTeam, offeredWrestler, requestedWrestler } = req.body;
   try {
@@ -127,7 +118,6 @@ app.post("/api/proposeTrade", async (req, res) => {
   }
 });
 
-// Get all trades
 app.get("/api/trades", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM trade_proposals ORDER BY created_at DESC");
@@ -138,17 +128,23 @@ app.get("/api/trades", async (req, res) => {
   }
 });
 
-// Get all transactions
-app.get("/api/transactions", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM transactions ORDER BY timestamp DESC");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching transactions:", err);
-    res.status(500).json({ error: "Failed to fetch transactions." });
-  }
-});
-
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+});
+
+// Get current team standings
+app.get("/api/standings", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT t.team_name, COALESCE(SUM(w.points), 0) AS score
+      FROM teams t
+      LEFT JOIN wrestlers w ON t.id = w.team_id
+      GROUP BY t.team_name
+      ORDER BY score DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching standings:", err);
+    res.status(500).json({ error: "Failed to fetch standings." });
+  }
 });
