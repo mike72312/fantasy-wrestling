@@ -87,12 +87,13 @@ const StandingsAndTransactions = () => {
         <tbody>
           {trades.map((trade, idx) => (
             <tr key={idx}>
-              <td>{trade.from_team}</td>
-              <td>{trade.to_team}</td>
-              <td>{trade.offered_wrestler}</td>
-              <td>{trade.requested_wrestler}</td>
-              <td>{trade.status}</td>
-              <td>{new Date(trade.timestamp).toLocaleString()}</td>
+<td>{trade.offering_team}</td>
+<td>{trade.receiving_team}</td>
+<td>{trade.offered_wrestler}</td>
+<td>{trade.requested_wrestler}</td>
+<td>{trade.status}</td>
+<td>{new Date(trade.created_at).toLocaleString()}</td>
+
             </tr>
           ))}
         </tbody>
