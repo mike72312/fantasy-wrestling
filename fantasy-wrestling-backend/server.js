@@ -36,7 +36,10 @@ app.get("/api/availableWrestlers", async (req, res) => {
 app.get("/api/roster/:teamName", async (req, res) => {
   const { teamName } = req.params;
   try {
-    const teamRes = await pool.query("SELECT id FROM teams WHERE team_name = $1", [teamName]);
+    const teamRes = await pool.query(
+      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", 
+      [teamName]
+    );
     if (teamRes.rows.length === 0) return res.status(404).send("Team not found.");
 
     const teamId = teamRes.rows[0].id;
