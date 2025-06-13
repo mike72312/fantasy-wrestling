@@ -166,35 +166,38 @@ app.get("/api/standings", async (req, res) => {
 app.post("/api/importEvent", async (req, res) => {
   try {
     const { html, event_name, event_date } = req.body;
-    const cheerio = require("cheerio");
     const $ = cheerio.load(html);
 
-    // Example parsing logic (you'll need to adapt this based on structure)
-    const matches = $(".match-card").map((i, el) => {
-      const winner = $(el).find(".winner").text().trim();
-      const isTitleMatch = $(el).find(".title").length > 0;
-      const signatureMoves = $(el).find(".sig").length;
+    const matches = [];
 
-      return {
-        wrestler_name: winner,
-        points: 5 + (isTitleMatch ? 7 : 0) + signatureMoves * 2,
-        event_name,
-        event_date
-      };
-    }).get();
+    $(".panel.panel-default").each((_, el) => {
+      const matchText = $(el).text();
+
+      const winnerMatch = matchText.match(/Winner\s*-\s*([^\n]+)/);
+      if (!winnerMatch) return;
+
+      const winner = winnerMatch[1].trim();
+
+      const isTitleMatch = /Championship/i.test(matchText);
+      const basePoints = 5;
+      const titleBonus = isTitleMatch ? 7 : 0;
+      const totalPoints = basePoints + titleBonus;
+
+      matches.push({ winner, points: totalPoints });
+    });
 
     for (const match of matches) {
-      await pool.query(
-        `INSERT INTO events (wrestler_name, points, event_name, event_date)
-         VALUES ($1, $2, $3, $4)`,
-        [match.wrestler_name, match.points, match.event_name, match.event_date]
-      );
+      await pool.query(`
+        UPDATE wrestlers
+        SET points = COALESCE(points, 0) + $1
+        WHERE LOWER(wrestler_name) = LOWER($2)
+      `, [match.points, match.winner]);
     }
 
-    res.json({ message: "Event imported successfully", count: matches.length });
+    res.json({ message: "Event imported and points updated", matches });
   } catch (err) {
-    console.error("❌ Error processing event import:", err);
-    res.status(500).json({ error: "Failed to import event results." });
+    console.error("❌ Import error:", err);
+    res.status(500).json({ error: "Failed to process event." });
   }
 });
 
