@@ -37,10 +37,14 @@ const AvailableWrestlers = () => {
 
     try {
       const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/addWrestler", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ team_name: teamName, wrestler_name: wrestlerName }),
-      });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    teamName: teamName,
+    wrestlerName: wrestlerName
+  }),
+});
+
 
       if (!response.ok) throw new Error("Add failed");
       setWrestlers((prev) => prev.filter((w) => w.wrestler_name !== wrestlerName));
