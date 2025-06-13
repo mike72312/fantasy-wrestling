@@ -22,9 +22,13 @@ app.get("/test", (req, res) => {
 // Get available wrestlers (not on a team)
 app.get("/api/availableWrestlers", async (req, res) => {
   try {
-    const query = `SELECT wrestler_name FROM wrestlers WHERE team_id IS NULL;`;
+    const query = `
+      SELECT wrestler_name, brand, points
+      FROM wrestlers
+      WHERE team_id IS NULL;
+    `;
     const result = await pool.query(query);
-    res.json(result.rows.map(row => row.wrestler_name));
+    res.json(result.rows); // ✅ Send full objects
   } catch (err) {
     console.error("Error fetching available wrestlers:", err);
     res.status(500).send("Error fetching available wrestlers");
