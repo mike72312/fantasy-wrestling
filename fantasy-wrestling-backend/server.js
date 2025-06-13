@@ -57,7 +57,7 @@ app.get("/api/roster/:teamName", async (req, res) => {
   }
 });
 
-// Add a wrestler to a team
+// Add a wrestler to a team (case-insensitive)
 app.post("/api/addWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
   try {
@@ -65,7 +65,10 @@ app.post("/api/addWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query("UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2 AND team_id IS NULL", [teamId, wrestlerName]);
+    await pool.query(
+      "UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2) AND team_id IS NULL",
+      [teamId, wrestlerName]
+    );
     res.json({ message: `${wrestlerName} added to ${teamName}` });
   } catch (err) {
     console.error("Error adding wrestler:", err);
@@ -73,7 +76,7 @@ app.post("/api/addWrestler", async (req, res) => {
   }
 });
 
-// Drop a wrestler from a team
+// Drop a wrestler from a team (case-insensitive)
 app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
   try {
@@ -81,7 +84,10 @@ app.post("/api/dropWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query("UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2", [wrestlerName, teamId]);
+    await pool.query(
+      "UPDATE wrestlers SET team_id = NULL WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2",
+      [wrestlerName, teamId]
+    );
     res.json({ message: `${wrestlerName} dropped from ${teamName}` });
   } catch (err) {
     console.error("Error dropping wrestler:", err);
@@ -132,7 +138,7 @@ app.get("/api/trades", async (req, res) => {
   }
 });
 
-// ✅ Get all transactions
+// Get all transactions
 app.get("/api/transactions", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM transactions ORDER BY timestamp DESC");
