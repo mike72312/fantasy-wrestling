@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const Roster = () => {
-  const [teamRoster, setTeamRoster] = useState([]);
+  const [roster, setroster] = useState([]);
   
   useEffect(() => {
     const teamName = localStorage.getItem('teamName');
@@ -11,7 +11,7 @@ const Roster = () => {
       axios
         .get(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
         .then((response) => {
-          setTeamRoster(response.data);  // Set the roster for the team
+          setroster(response.data);  // Set the roster for the team
         })
         .catch((error) => {
           console.error("Error fetching team roster:", error);
@@ -33,7 +33,7 @@ const Roster = () => {
       })
       .then((response) => {
         alert(response.data.message);
-        setTeamRoster((prevRoster) =>
+        setroster((prevRoster) =>
           prevRoster.filter((wrestlerName) => wrestlerName !== wrestler)
         );
       })
@@ -47,10 +47,10 @@ const Roster = () => {
     <div className="container">
       <h2>Your Roster</h2>
       <div className="wrestler-list">
-        {teamRoster.length === 0 ? (
+        {roster.length === 0 ? (
           <p>Your roster is empty.</p>
         ) : (
-          teamRoster.map((wrestler, index) => (
+          roster.map((wrestler, index) => (
             <div className="card" key={index}>
               <div className="card-content">
                 <h4>{wrestler}</h4>

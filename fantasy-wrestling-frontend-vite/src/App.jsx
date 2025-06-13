@@ -6,7 +6,7 @@ import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
 import Transactions from './components/Transactions';
 import StandingsAndTransactions from './components/StandingsAndTransactions';
-import TeamRoster from './components/TeamRoster';
+import roster from './components/roster';
 import WrestlerProfile from './components/WrestlerProfile';
 import EventForm from './components/EventForm';
 
@@ -21,7 +21,7 @@ const App = () => {
           <Route path="/available-wrestlers" element={<AvailableWrestlers />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/standings" element={<StandingsAndTransactions />} />
-          <Route path="/roster/:teamName" element={<TeamRoster />} />
+          <Route path="/roster/:teamName" element={<roster />} />
           <Route path="/wrestler/:wrestlerName" element={<WrestlerProfile />} />
           <Route path="/import-event" element={<EventForm />} />
         </Routes>

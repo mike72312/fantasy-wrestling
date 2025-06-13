@@ -2,12 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-const TeamRoster = () => {
+const roster = () => {
   const { teamName } = useParams();
   const [roster, setRoster] = useState([]);
 
   useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/teamRoster/${teamName}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
       .then((res) => res.json())
       .then((data) => setRoster(data))
       .catch((err) => console.error("❌ Error loading roster:", err));
@@ -58,4 +58,4 @@ const TeamRoster = () => {
   );
 };
 
-export default TeamRoster;
+export default roster;
