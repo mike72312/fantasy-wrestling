@@ -162,31 +162,39 @@ app.get("/api/standings", async (req, res) => {
   }
 });
 
-// Import event points from HTML file
+// Import event results
 app.post("/api/importEvent", async (req, res) => {
   try {
-    const html = fs.readFileSync("./drop_the_belt_2025_06_07.html", "utf8");
+    const { html, event_name, event_date } = req.body;
+    const cheerio = require("cheerio");
     const $ = cheerio.load(html);
-    const points = {};
 
-    $("ol li").each((i, el) => {
-      const text = $(el).text();
-      const match = text.match(/^(.+?)\s+(\d+)\s+pts/);
-      if (match) {
-        const name = match[1].replace(/“|”|"/g, "'").trim();
-        const pts = parseInt(match[2]);
-        points[name] = (points[name] || 0) + pts;
-      }
-    });
+    // Example parsing logic (you'll need to adapt this based on structure)
+    const matches = $(".match-card").map((i, el) => {
+      const winner = $(el).find(".winner").text().trim();
+      const isTitleMatch = $(el).find(".title").length > 0;
+      const signatureMoves = $(el).find(".sig").length;
 
-    for (const [name, score] of Object.entries(points)) {
-      await pool.query("UPDATE wrestlers SET points = points + $1 WHERE LOWER(wrestler_name) = LOWER($2)", [score, name]);
+      return {
+        wrestler_name: winner,
+        points: 5 + (isTitleMatch ? 7 : 0) + signatureMoves * 2,
+        event_name,
+        event_date
+      };
+    }).get();
+
+    for (const match of matches) {
+      await pool.query(
+        `INSERT INTO events (wrestler_name, points, event_name, event_date)
+         VALUES ($1, $2, $3, $4)`,
+        [match.wrestler_name, match.points, match.event_name, match.event_date]
+      );
     }
 
-    res.json({ message: "Event scores imported.", updated: Object.keys(points).length });
+    res.json({ message: "Event imported successfully", count: matches.length });
   } catch (err) {
-    console.error("Error importing event:", err);
-    res.status(500).json({ error: "Failed to import event." });
+    console.error("❌ Error processing event import:", err);
+    res.status(500).json({ error: "Failed to import event results." });
   }
 });
 
