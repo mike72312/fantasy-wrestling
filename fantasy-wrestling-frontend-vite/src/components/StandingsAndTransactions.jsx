@@ -75,7 +75,7 @@ const StandingsAndTransactions = () => {
         <tbody>
           {sortedStandings.map((team, idx) => (
             <tr key={idx}>
-              <td><Link to={`/roster/${team.team_name}`}>{team.team_name}</Link></td>
+              <td><Link to={`/teamroster/${team.team_name}`}>{team.team_name}</Link></td>
               <td>{team.score}</td>
             </tr>
           ))}

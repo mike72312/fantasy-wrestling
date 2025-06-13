@@ -12,7 +12,7 @@ const Home = () => {
     <div className="container">
       <h1>Fantasy Wrestling League</h1>
       {teamName ? (
-        <p>Welcome, {teamName}! You can view your <a href={`/roster/${encodeURIComponent(teamName)}`}>roster here</a>.</p>
+        <p>Welcome, {teamName}! You can view your <a href={`/teamroster/${encodeURIComponent(teamName)}`}>teamroster here</a>.</p>
       ) : (
         <p>Please log in or select a team to get started.</p>
       )}

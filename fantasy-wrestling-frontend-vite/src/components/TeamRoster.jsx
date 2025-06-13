@@ -2,15 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-const roster = () => {
+const teamroster = () => {
   const { teamName } = useParams();
-  const [roster, setRoster] = useState([]);
+  const [teamroster, setteamroster] = useState([]);
 
   useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/teamroster/${teamName}`)
       .then((res) => res.json())
-      .then((data) => setRoster(data))
-      .catch((err) => console.error("❌ Error loading roster:", err));
+      .then((data) => setteamroster(data))
+      .catch((err) => console.error("❌ Error loading teamroster:", err));
   }, [teamName]);
 
   const handleDrop = async (wrestlerName) => {
@@ -34,7 +34,7 @@ const roster = () => {
         body: JSON.stringify({ team_name: teamName, wrestler_name: wrestlerName }),
       });
       if (!res.ok) throw new Error("Drop failed");
-      setRoster((prev) => prev.filter((w) => w.wrestler_name !== wrestlerName));
+      setteamroster((prev) => prev.filter((w) => w.wrestler_name !== wrestlerName));
     } catch (err) {
       console.error("❌ Error dropping wrestler:", err);
       alert("Failed to drop wrestler.");
@@ -43,9 +43,9 @@ const roster = () => {
 
   return (
     <div className="container">
-      <h2>{teamName}'s Roster</h2>
+      <h2>{teamName}'s teamroster</h2>
       <ul>
-        {roster.map((w, idx) => (
+        {teamroster.map((w, idx) => (
           <li key={idx}>
             <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
               {w.wrestler_name}
@@ -58,4 +58,4 @@ const roster = () => {
   );
 };
 
-export default roster;
+export default teamroster;

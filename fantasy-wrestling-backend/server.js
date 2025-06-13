@@ -37,8 +37,8 @@ app.get("/api/availableWrestlers", async (req, res) => {
   }
 });
 
-// Get teamRoster for a specific team
-app.get("/api/teamRoster/:teamName", async (req, res) => {
+// Get teamteamroster for a specific team
+app.get("/api/teamteamroster/:teamName", async (req, res) => {
   const { teamName } = req.params;
   try {
     const teamRes = await pool.query(
@@ -48,14 +48,14 @@ app.get("/api/teamRoster/:teamName", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).send("Team not found.");
 
     const teamId = teamRes.rows[0].id;
-    const teamRosterRes = await pool.query(
+    const teamteamrosterRes = await pool.query(
       "SELECT wrestler_name, points FROM wrestlers WHERE team_id = $1",
       [teamId]
     );
-    res.json(teamRosterRes.rows);
+    res.json(teamteamrosterRes.rows);
   } catch (err) {
-    console.error("Error fetching team teamRoster:", err);
-    res.status(500).send("Error fetching team teamRoster.");
+    console.error("Error fetching team teamteamroster:", err);
+    res.status(500).send("Error fetching team teamteamroster.");
   }
 });
 
