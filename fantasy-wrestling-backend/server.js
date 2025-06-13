@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
@@ -102,7 +101,7 @@ app.get("/api/teamPoints/:teamName", async (req, res) => {
   }
 });
 
-// Trades API
+// Propose a trade
 app.post("/api/proposeTrade", async (req, res) => {
   const { offeringTeam, receivingTeam, offeredWrestler, requestedWrestler } = req.body;
   try {
@@ -118,6 +117,7 @@ app.post("/api/proposeTrade", async (req, res) => {
   }
 });
 
+// Get all trades
 app.get("/api/trades", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM trade_proposals ORDER BY created_at DESC");
@@ -125,6 +125,17 @@ app.get("/api/trades", async (req, res) => {
   } catch (err) {
     console.error("Error fetching trades:", err);
     res.status(500).json({ error: "Failed to fetch trades." });
+  }
+});
+
+// ✅ Get all transactions
+app.get("/api/transactions", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM transactions ORDER BY timestamp DESC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    res.status(500).json({ error: "Failed to fetch transactions." });
   }
 });
 
