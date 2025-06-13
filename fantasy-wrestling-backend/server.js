@@ -1,7 +1,8 @@
-
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
+const fs = require("fs");
+const cheerio = require("cheerio");
 require("dotenv").config();
 
 const app = express();
@@ -23,9 +24,13 @@ app.get("/test", (req, res) => {
 // Get available wrestlers (not on a team)
 app.get("/api/availableWrestlers", async (req, res) => {
   try {
-    const query = `SELECT wrestler_name FROM wrestlers WHERE team_id IS NULL;`;
+    const query = `
+      SELECT wrestler_name, brand, points
+      FROM wrestlers
+      WHERE team_id IS NULL;
+    `;
     const result = await pool.query(query);
-    res.json(result.rows.map(row => row.wrestler_name));
+    res.json(result.rows);
   } catch (err) {
     console.error("Error fetching available wrestlers:", err);
     res.status(500).send("Error fetching available wrestlers");
@@ -37,7 +42,7 @@ app.get("/api/roster/:teamName", async (req, res) => {
   const { teamName } = req.params;
   try {
     const teamRes = await pool.query(
-      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", 
+      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
       [teamName]
     );
     if (teamRes.rows.length === 0) return res.status(404).send("Team not found.");
@@ -62,7 +67,7 @@ app.post("/api/addWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query("UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2) AND team_id IS NULL", [teamId, wrestlerName]);
+    await pool.query("UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2 AND team_id IS NULL", [teamId, wrestlerName]);
     res.json({ message: `${wrestlerName} added to ${teamName}` });
   } catch (err) {
     console.error("Error adding wrestler:", err);
@@ -78,7 +83,7 @@ app.post("/api/dropWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query("UPDATE wrestlers SET team_id = NULL WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2", [wrestlerName, teamId]);
+    await pool.query("UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2", [wrestlerName, teamId]);
     res.json({ message: `${wrestlerName} dropped from ${teamName}` });
   } catch (err) {
     console.error("Error dropping wrestler:", err);
@@ -102,7 +107,7 @@ app.get("/api/teamPoints/:teamName", async (req, res) => {
   }
 });
 
-// Trades API
+// Propose a trade
 app.post("/api/proposeTrade", async (req, res) => {
   const { offeringTeam, receivingTeam, offeredWrestler, requestedWrestler } = req.body;
   try {
@@ -118,6 +123,7 @@ app.post("/api/proposeTrade", async (req, res) => {
   }
 });
 
+// Get all trades
 app.get("/api/trades", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM trade_proposals ORDER BY created_at DESC");
@@ -128,11 +134,18 @@ app.get("/api/trades", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+// Get all transactions
+app.get("/api/transactions", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM transactions ORDER BY timestamp DESC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    res.status(500).json({ error: "Failed to fetch transactions." });
+  }
 });
 
-// Get current team standings
+// Get standings
 app.get("/api/standings", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -147,4 +160,36 @@ app.get("/api/standings", async (req, res) => {
     console.error("Error fetching standings:", err);
     res.status(500).json({ error: "Failed to fetch standings." });
   }
+});
+
+// Import event points from HTML file
+app.post("/api/importEvent", async (req, res) => {
+  try {
+    const html = fs.readFileSync("./drop_the_belt_2025_06_07.html", "utf8");
+    const $ = cheerio.load(html);
+    const points = {};
+
+    $("ol li").each((i, el) => {
+      const text = $(el).text();
+      const match = text.match(/^(.+?)\s+(\d+)\s+pts/);
+      if (match) {
+        const name = match[1].replace(/“|”|"/g, "'").trim();
+        const pts = parseInt(match[2]);
+        points[name] = (points[name] || 0) + pts;
+      }
+    });
+
+    for (const [name, score] of Object.entries(points)) {
+      await pool.query("UPDATE wrestlers SET points = points + $1 WHERE LOWER(wrestler_name) = LOWER($2)", [score, name]);
+    }
+
+    res.json({ message: "Event scores imported.", updated: Object.keys(points).length });
+  } catch (err) {
+    console.error("Error importing event:", err);
+    res.status(500).json({ error: "Failed to import event." });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
