@@ -6,7 +6,7 @@ const TradeProposalForm = ({ fromTeam, toTeam, offeredWrestler, requestedWrestle
 
   const handleSubmit = async () => {
     try {
-      const res = await axios.post("https://wrestling-backend2.onrender.com/api/proposeTrade", {
+      const res = await axios.post("https://fantasy-wrestling-backend.onrender.com/api/proposeTrade", {
         from_team: fromTeam,
         to_team: toTeam,
         offered_wrestler: offeredWrestler,

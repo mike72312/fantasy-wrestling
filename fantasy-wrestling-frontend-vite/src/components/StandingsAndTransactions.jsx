@@ -10,15 +10,15 @@ const StandingsAndTransactions = () => {
   const [trades, setTrades] = useState([]);
 
   useEffect(() => {
-    axios.get("https://wrestling-backend2.onrender.com/api/standings")
+    axios.get("https://fantasy-wrestling-backend.onrender.com/api/standings")
       .then(res => setStandings(res.data))
       .catch(err => console.error("Error loading standings:", err));
 
-    axios.get("https://wrestling-backend2.onrender.com/api/transactions")
+    axios.get("https://fantasy-wrestling-backend.onrender.com/api/transactions")
       .then(res => setTransactions(res.data))
       .catch(err => console.error("Error loading transactions:", err));
 
-    axios.get("https://wrestling-backend2.onrender.com/api/trades")
+    axios.get("https://fantasy-wrestling-backend.onrender.com/api/trades")
       .then(res => setTrades(res.data))
       .catch(err => console.error("Error loading trades:", err));
   }, []);
