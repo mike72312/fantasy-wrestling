@@ -6,7 +6,7 @@ import AvailableWrestlers from './components/AvailableWrestlers';
 import Login from './components/Login';
 import Transactions from './components/Transactions';
 import StandingsAndTransactions from './components/StandingsAndTransactions';
-import roster from './components/roster';
+import roster from './components/Roster';
 import WrestlerProfile from './components/WrestlerProfile';
 import EventForm from './components/EventForm';
 
