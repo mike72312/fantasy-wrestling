@@ -323,8 +323,8 @@ app.post("/api/importEvent", async (req, res) => {
       }
     });
 
-    // Update database
-    const teamMap = {}; // cache wrestler -> team name
+    const summary = [];
+
     for (const [name, points] of Object.entries(wrestlerPoints)) {
       const wrestlerRes = await pool.query(
         "SELECT id, team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
@@ -334,28 +334,71 @@ app.post("/api/importEvent", async (req, res) => {
 
       const { id: wrestlerId, team_id } = wrestlerRes.rows[0];
 
+      // 1. Update total points in wrestlers table
       await pool.query("UPDATE wrestlers SET points = points + $1 WHERE id = $2", [points, wrestlerId]);
 
-      // Record transaction for historical accuracy
-      if (team_id) {
-        if (!teamMap[wrestlerId]) {
-          const teamRes = await pool.query("SELECT team_name FROM teams WHERE id = $1", [team_id]);
-          if (teamRes.rows.length > 0) {
-            teamMap[wrestlerId] = teamRes.rows[0].team_name;
-          }
-        }
-        await pool.query(
-          `INSERT INTO transactions (wrestler_name, team_name, action, points, event_name, event_date, timestamp)
-           VALUES ($1, $2, 'event', $3, $4, $5, NOW())`,
-          [name, teamMap[wrestlerId], points, event_name, event_date]
-        );
-      }
+      // 2. Log event points in event_points table
+      await pool.query(
+        `INSERT INTO event_points (wrestler_id, team_id, event_name, event_date, points)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [wrestlerId, team_id, event_name, event_date, points]
+      );
+
+      summary.push({ wrestler: name, points });
     }
 
-    res.json({ message: "Event imported and points updated", updated: Object.keys(wrestlerPoints).length });
+    res.json({ message: "Event imported and points updated", updated: summary.length, details: summary });
   } catch (err) {
     console.error("❌ Error processing event:", err);
     res.status(500).json({ error: "Error processing event" });
+  }
+});
+
+app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
+  const { name } = req.params;
+  try {
+    const wrestlerRes = await pool.query(
+      "SELECT id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+      [name.toLowerCase()]
+    );
+    if (wrestlerRes.rows.length === 0) return res.status(404).json({ error: "Wrestler not found" });
+
+    const wrestlerId = wrestlerRes.rows[0].id;
+    const result = await pool.query(
+      `SELECT event_name, event_date, points, teams.team_name
+       FROM event_points
+       LEFT JOIN teams ON event_points.team_id = teams.id
+       WHERE wrestler_id = $1
+       ORDER BY event_date DESC`,
+      [wrestlerId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching event points:", err);
+    res.status(500).json({ error: "Error fetching event points" });
+  }
+});
+
+app.get("/api/eventPoints/team/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+  try {
+    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName.toLowerCase()]);
+    if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
+
+    const teamId = teamRes.rows[0].id;
+    const result = await pool.query(`
+      SELECT ep.event_name, ep.event_date, ep.points, w.wrestler_name
+      FROM event_points ep
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      WHERE ep.team_id = $1
+      ORDER BY ep.event_date DESC
+    `, [teamId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching team event points:", err);
+    res.status(500).json({ error: "Error fetching team event points" });
   }
 });
 

@@ -1,16 +1,17 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("points");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
     fetch("https://fantasy-wrestling-backend.onrender.com/api/availableWrestlers")
       .then((res) => res.json())
       .then((data) => {
-        const sorted = data.sort((a, b) => b.points - a.points);
+        const sorted = [...data].sort((a, b) => b.points - a.points); // default: highest points first
         setWrestlers(sorted);
       })
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
@@ -21,30 +22,26 @@ const AvailableWrestlers = () => {
     if (!teamName) return alert("No team selected.");
 
     const restrictedHours = [
-      { day: 1, start: 20, end: 23 }, // Monday
-      { day: 5, start: 20, end: 23 }, // Friday
-      { day: 6, start: 20, end: 23 }, // Saturday
+      { day: 1, start: 20, end: 23 },
+      { day: 5, start: 20, end: 23 },
+      { day: 6, start: 20, end: 23 },
     ];
     const now = new Date();
-    const currentDay = now.getDay(); // Sunday = 0
+    const currentDay = now.getDay();
     const currentHour = now.getHours();
     const isRestricted = restrictedHours.some(
       (r) => r.day === currentDay && currentHour >= r.start && currentHour < r.end
     );
     if (isRestricted) {
-      return alert("Add/drop is not allowed during event hours (Mon/Fri/Sat 8-11pm ET).");
+      return alert("Add/drop is not allowed during event hours (Mon/Fri/Sat 8–11pm ET).");
     }
 
     try {
       const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/addWrestler", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    teamName: teamName,
-    wrestlerName: wrestlerName
-  }),
-});
-
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamName, wrestlerName }),
+      });
 
       if (!response.ok) throw new Error("Add failed");
       setWrestlers((prev) => prev.filter((w) => w.wrestler_name !== wrestlerName));
@@ -58,9 +55,21 @@ const AvailableWrestlers = () => {
     w.wrestler_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const sortedWrestlers = [...filteredWrestlers].sort((a, b) => {
+    const aVal = a[sortBy] ?? "";
+    const bVal = b[sortBy] ?? "";
+    if (typeof aVal === "string") {
+      return sortOrder === "asc"
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+  });
+
   return (
     <div className="container">
       <h2>Available Wrestlers</h2>
+
       <input
         type="text"
         placeholder="Search wrestlers..."
@@ -68,6 +77,19 @@ const AvailableWrestlers = () => {
         onChange={(e) => setSearch(e.target.value)}
         style={{ marginBottom: "1rem", padding: "0.5rem", width: "100%" }}
       />
+
+      <div style={{ marginBottom: "1rem" }}>
+        <label>Sort by: </label>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="wrestler_name">Name</option>
+          <option value="points">Points</option>
+        </select>
+        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+          <option value="desc">Descending</option>
+          <option value="asc">Ascending</option>
+        </select>
+      </div>
+
       <table className="wrestler-table">
         <thead>
           <tr>
@@ -78,7 +100,7 @@ const AvailableWrestlers = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredWrestlers.map((w, idx) => (
+          {sortedWrestlers.map((w, idx) => (
             <tr key={idx}>
               <td>
                 <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
