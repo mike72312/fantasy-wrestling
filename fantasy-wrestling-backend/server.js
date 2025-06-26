@@ -369,14 +369,14 @@ app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
     if (wrestlerRes.rows.length === 0) return res.status(404).json({ error: "Wrestler not found" });
 
     const wrestlerId = wrestlerRes.rows[0].id;
-    const result = await pool.query(
-      `SELECT event_name, event_date, points, teams.team_name
-       FROM event_points
-       LEFT JOIN teams ON event_points.team_id = teams.id
-       WHERE wrestler_id = $1
-       ORDER BY event_date DESC`,
-      [wrestlerId]
-    );
+const result = await pool.query(
+  `SELECT event_name, event_date, points, team_name, description
+   FROM event_points
+   WHERE wrestler_name = $1
+   ORDER BY event_date DESC`,
+  [req.params.name]
+);
+
 
     res.json(result.rows);
   } catch (err) {
