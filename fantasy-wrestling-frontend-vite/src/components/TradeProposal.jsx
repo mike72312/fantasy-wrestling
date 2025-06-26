@@ -1,29 +1,51 @@
-// src/components/TradeProposal.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 const TradeProposal = () => {
   const { opponentTeam, requestedWrestler } = useParams();
-  const userTeam = localStorage.getItem("teamName");
   const navigate = useNavigate();
+
+  const userTeam = localStorage.getItem("teamName");
 
   const [userRoster, setUserRoster] = useState([]);
   const [opponentRoster, setOpponentRoster] = useState([]);
-
   const [offered, setOffered] = useState([]);
-  const [requested, setRequested] = useState([requestedWrestler]);
+  const [requested, setRequested] = useState([]);
+
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userTeam) return;
+    const fetchRosters = async () => {
+      try {
+        const [userRes, opponentRes] = await Promise.all([
+          fetch(`/api/roster/${encodeURIComponent(userTeam)}`),
+          fetch(`/api/roster/${encodeURIComponent(opponentTeam)}`)
+        ]);
 
-    fetch(`/api/roster/${userTeam}`)
-      .then(res => res.json())
-      .then(setUserRoster);
+        if (!userRes.ok || !opponentRes.ok) throw new Error("Failed to fetch rosters");
 
-    fetch(`/api/roster/${opponentTeam}`)
-      .then(res => res.json())
-      .then(setOpponentRoster);
-  }, [userTeam, opponentTeam]);
+        const [userData, opponentData] = await Promise.all([
+          userRes.json(),
+          opponentRes.json()
+        ]);
+
+        setUserRoster(userData);
+        setOpponentRoster(opponentData);
+
+        // Default the requested wrestler as selected
+        if (requestedWrestler) {
+          setRequested([requestedWrestler]);
+        }
+
+        setLoading(false);
+      } catch (err) {
+        console.error("Error loading rosters:", err);
+        alert("Failed to load team rosters. Please check team names or try again.");
+      }
+    };
+
+    fetchRosters();
+  }, [userTeam, opponentTeam, requestedWrestler]);
 
   const toggleWrestler = (name, list, setList) => {
     setList(prev =>
@@ -31,40 +53,50 @@ const TradeProposal = () => {
     );
   };
 
-  const submitTrade = () => {
-    fetch("/api/proposeTrade", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        offeringTeam: userTeam,
-        receivingTeam: opponentTeam,
-        offeredWrestlers: offered,
-        requestedWrestlers: requested,
-      }),
-    })
-      .then(res => res.json())
-      .then(() => {
-        alert("Trade proposed!");
-        navigate("/transactions");
-      })
-      .catch(err => {
-        console.error("Trade failed:", err);
-        alert("Failed to propose trade.");
+  const submitTrade = async () => {
+    if (offered.length === 0 || requested.length === 0) {
+      alert("Please select at least one wrestler from each side.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/proposeTrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          offeringTeam: userTeam,
+          receivingTeam: opponentTeam,
+          offeredWrestlers: offered,
+          requestedWrestlers: requested,
+        }),
       });
+
+      if (!res.ok) throw new Error("Trade proposal failed");
+
+      alert("Trade proposed!");
+      navigate("/transactions");
+    } catch (err) {
+      console.error("Trade error:", err);
+      alert("Something went wrong proposing the trade.");
+    }
   };
+
+  if (loading) return <div className="container"><p>Loading rosters...</p></div>;
 
   return (
     <div className="container">
-      <h2>Trade Proposal: {userTeam} ⇄ {opponentTeam}</h2>
+      <h2>Trade Proposal</h2>
+      <p>You ({userTeam}) are proposing a trade to {opponentTeam}</p>
 
       <div style={{ display: "flex", gap: "2rem", justifyContent: "space-between", flexWrap: "wrap" }}>
+        {/* Your Team */}
         <div style={{ flex: 1 }}>
-          <h3>Your Team</h3>
+          <h3>{userTeam} (Your Team)</h3>
           <table className="wrestler-table">
             <thead>
               <tr>
                 <th>Offer?</th>
-                <th>Name</th>
+                <th>Wrestler</th>
               </tr>
             </thead>
             <tbody>
@@ -84,13 +116,14 @@ const TradeProposal = () => {
           </table>
         </div>
 
+        {/* Opponent Team */}
         <div style={{ flex: 1 }}>
-          <h3>{opponentTeam}'s Team</h3>
+          <h3>{opponentTeam}</h3>
           <table className="wrestler-table">
             <thead>
               <tr>
                 <th>Request?</th>
-                <th>Name</th>
+                <th>Wrestler</th>
               </tr>
             </thead>
             <tbody>
@@ -112,19 +145,14 @@ const TradeProposal = () => {
       </div>
 
       <div style={{ marginTop: "2rem" }}>
-        <h4>Summary:</h4>
+        <h4>Summary</h4>
         <p>
-          You are offering: <strong>{offered.join(", ") || "None"}</strong>
+          <strong>You're offering:</strong> {offered.join(", ") || "None"}
         </p>
         <p>
-          You are requesting: <strong>{requested.join(", ") || "None"}</strong>
+          <strong>You're requesting:</strong> {requested.join(", ") || "None"}
         </p>
-        <button
-          onClick={submitTrade}
-          disabled={offered.length === 0 || requested.length === 0}
-        >
-          Submit Trade Proposal
-        </button>
+        <button onClick={submitTrade}>Submit Trade Proposal</button>
       </div>
     </div>
   );
