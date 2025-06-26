@@ -153,7 +153,7 @@ app.get("/api/teamPoints/:teamName", async (req, res) => {
   }
 });
 
-// ✅ Propose a multi-wrestler trade
+// ✅ Propose a trade
 app.post("/api/proposeTrade", async (req, res) => {
   const { offeringTeam, receivingTeam, offeredWrestlers, requestedWrestlers } = req.body;
   if (!offeringTeam || !receivingTeam || !Array.isArray(offeredWrestlers) || !Array.isArray(requestedWrestlers)) {
@@ -170,6 +170,50 @@ app.post("/api/proposeTrade", async (req, res) => {
   } catch (err) {
     console.error("Error proposing trade:", err);
     res.status(500).json({ error: "Failed to propose trade." });
+  }
+});
+
+// ✅ Respond to a trade (accept or reject)
+app.post("/api/trades/:id/respond", async (req, res) => {
+  const { id } = req.params;
+  const { action } = req.body;
+
+  try {
+    const tradeRes = await pool.query("SELECT * FROM trade_proposals WHERE id = $1", [id]);
+    if (tradeRes.rows.length === 0) return res.status(404).json({ error: "Trade not found" });
+
+    const trade = tradeRes.rows[0];
+
+    if (action === "accept") {
+      // Get team IDs
+      const sendTeam = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [trade.offering_team]);
+      const recvTeam = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [trade.receiving_team]);
+      if (sendTeam.rows.length === 0 || recvTeam.rows.length === 0) return res.status(400).json({ error: "Invalid team" });
+
+      const sendTeamId = sendTeam.rows[0].id;
+      const recvTeamId = recvTeam.rows[0].id;
+
+      for (const name of trade.offered_wrestlers) {
+        await pool.query("UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2)", [recvTeamId, name]);
+        await pool.query("INSERT INTO transactions (wrestler_name, team_name, action, timestamp) VALUES ($1, $2, 'trade_out', NOW())", [name, trade.offering_team]);
+      }
+
+      for (const name of trade.requested_wrestlers) {
+        await pool.query("UPDATE wrestlers SET team_id = $1 WHERE LOWER(wrestler_name) = LOWER($2)", [sendTeamId, name]);
+        await pool.query("INSERT INTO transactions (wrestler_name, team_name, action, timestamp) VALUES ($1, $2, 'trade_out', NOW())", [name, trade.receiving_team]);
+      }
+
+      await pool.query("UPDATE trade_proposals SET status = 'accepted', responded_at = NOW() WHERE id = $1", [id]);
+      res.json({ message: "Trade accepted and processed." });
+    } else if (action === "reject") {
+      await pool.query("UPDATE trade_proposals SET status = 'rejected', responded_at = NOW() WHERE id = $1", [id]);
+      res.json({ message: "Trade rejected." });
+    } else {
+      res.status(400).json({ error: "Invalid action" });
+    }
+  } catch (err) {
+    console.error("Error processing trade response:", err);
+    res.status(500).json({ error: "Failed to process trade response." });
   }
 });
 

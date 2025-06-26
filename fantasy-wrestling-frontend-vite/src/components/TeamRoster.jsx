@@ -49,11 +49,6 @@ const TeamRoster = () => {
     }
   };
 
-  const proposeTrade = (requestedWrestler) => {
-    const params = new URLSearchParams({ requestedWrestler });
-    navigate(`/trade-center?${params.toString()}`);
-  };
-
   return (
     <div className="container">
       <h2>{teamName}'s Roster</h2>
@@ -67,7 +62,12 @@ const TeamRoster = () => {
             {userTeam === teamName.toLowerCase() ? (
               <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>
             ) : (
-              <button onClick={() => proposeTrade(wrestler.wrestler_name)}>Propose Trade</button>
+              <Link
+                to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
+                className="propose-trade-btn"
+              >
+                Propose Trade
+              </Link>
             )}
           </li>
         ))}

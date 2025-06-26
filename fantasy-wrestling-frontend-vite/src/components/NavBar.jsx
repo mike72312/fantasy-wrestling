@@ -16,6 +16,7 @@ const NavBar = () => {
       <Link to="/standings" style={{ color: "white", marginRight: "1rem" }}>Standings</Link>
       <Link to="/transactions" style={{ color: "white", marginRight: "1rem" }}>Transactions</Link>
       <Link to="/import-event" style={{ color: "white", marginRight: "1rem" }}>Import Event</Link>
+      <Link to="/trade-inbox" style={{ color: "white", marginRight: "1rem" }}>Trade Inbox</Link> {/* ✅ NEW */}
       <button onClick={handleLogout} style={{ marginLeft: "1rem", padding: "0.5rem 1rem" }}>Logout</button>
     </nav>
   );

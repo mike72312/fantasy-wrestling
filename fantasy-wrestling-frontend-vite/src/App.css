@@ -107,3 +107,51 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* ✅ Trade System Enhancements */
+.propose-trade-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background-color 0.3s ease;
+}
+
+.propose-trade-btn:hover {
+  background-color: #0056b3;
+}
+
+.trade-card {
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  background-color: #f9f9f9;
+}
+
+.trade-card p {
+  margin: 8px 0;
+}
+
+.trade-card button {
+  margin-right: 10px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+}
+
+.trade-card button:last-child {
+  background-color: #dc3545;
+}
+
+.container input[type="checkbox"] {
+  margin-right: 6px;
+}
