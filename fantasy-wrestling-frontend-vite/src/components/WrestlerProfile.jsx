@@ -9,7 +9,7 @@ const WrestlerProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`https://wrestling-backend2.onrender.com/api/wrestler/${encodeURIComponent(wrestlerName)}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${encodeURIComponent(wrestlerName)}`)
       .then((res) => {
         if (!res.ok) throw new Error("Not found");
         return res.json();

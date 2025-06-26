@@ -9,7 +9,7 @@ const teamroster = () => {
     if (teamName) {
       // Fetch teamroster for the logged-in user (team)
       axios
-        .get(`https://wrestling-backend2.onrender.com/api/teamroster/${teamName}`)
+        .get(`https://fantasy-wrestling-backend.onrender.com/api/teamroster/${teamName}`)
         .then((response) => {
           setteamroster(response.data);  // Set the teamroster for the team
         })
@@ -27,7 +27,7 @@ const teamroster = () => {
     }
 
     axios
-      .post("https://wrestling-backend2.onrender.com/api/dropWrestler", {
+      .post("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
         teamName: teamName,
         wrestlerName: wrestler
       })

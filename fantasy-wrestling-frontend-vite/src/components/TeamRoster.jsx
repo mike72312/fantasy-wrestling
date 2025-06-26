@@ -9,7 +9,7 @@ const TeamRoster = () => {
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
 
   useEffect(() => {
-    fetch(`https://wrestling-backend2.onrender.com/api/roster/${teamName}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
       .then((res) => res.json())
       .then((data) => setteamroster(data))
       .catch((err) => console.error("❌ Error loading teamroster:", err));
@@ -34,7 +34,7 @@ const TeamRoster = () => {
     }
 
     try {
-      const res = await fetch("https://wrestling-backend2.onrender.com/api/dropWrestler", {
+      const res = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamName, wrestlerName }),

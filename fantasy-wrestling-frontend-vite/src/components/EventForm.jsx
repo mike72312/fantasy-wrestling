@@ -17,7 +17,7 @@ const EventForm = () => {
       const html = reader.result;
 
       try {
-        const response = await fetch("https://wrestling-backend2.onrender.com/api/importEvent", {
+        const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/importEvent", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ html, event_name: eventName, event_date: eventDate }),

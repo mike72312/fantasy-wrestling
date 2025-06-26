@@ -22,7 +22,7 @@ const TradeCenter = () => {
 
   const fetchTrades = async () => {
     try {
-      const res = await axios.get("https://wrestling-backend2.onrender.com/api/trades");
+      const res = await axios.get("https://fantasy-wrestling-backend.onrender.com/api/trades");
       setTrades(res.data);
     } catch (err) {
       console.error("Error fetching trades:", err);
@@ -32,7 +32,7 @@ const TradeCenter = () => {
   const submitTrade = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("https://wrestling-backend2.onrender.com/api/proposeTrade", form);
+      const res = await axios.post("https://fantasy-wrestling-backend.onrender.com/api/proposeTrade", form);
       setStatus('✅ Trade proposed!');
       setForm({
         offeringTeam: localStorage.getItem("teamName") || '',
