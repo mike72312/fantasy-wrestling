@@ -3,7 +3,6 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const fs = require("fs");
 const cheerio = require("cheerio");
-const fetch = require("node-fetch");
 require("dotenv").config();
 
 const app = express();
