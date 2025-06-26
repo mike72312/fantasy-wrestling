@@ -243,3 +243,7 @@ app.post("/api/importEvent", async (req, res) => {
     res.status(500).json({ error: "Failed to process event." });
   }
 });
+// Must be at the very end of server.js
+app.listen(port, () => {
+  console.log(`✅ Server running on port ${port}`);
+});
