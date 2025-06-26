@@ -38,7 +38,7 @@ app.get("/api/availableWrestlers", async (req, res) => {
 });
 
 // Get teamroster for a specific team
-app.get("/api/teamroster/:teamName", async (req, res) => {
+app.get("/api/roster/:teamName", async (req, res) => {
   const { teamName } = req.params;
   try {
     const teamRes = await pool.query(
