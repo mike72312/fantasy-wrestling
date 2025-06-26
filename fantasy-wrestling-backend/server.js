@@ -283,7 +283,7 @@ app.post("/api/importEvent", async (req, res) => {
 
   try {
     const $ = cheerio.load(eventHtml);
-    const results = [];
+    const wrestlerPoints = {};
 
     $(".result").each((_, el) => {
       const text = $(el).text().trim();
@@ -296,16 +296,66 @@ app.post("/api/importEvent", async (req, res) => {
       const submission = /submission/i.test(text);
       const signatureMoves = (text.match(/signature move/gi) || []).length;
       const special = /confronts|returns|cash-in|turns|debuts/i.test(text);
+      const titleChange = /new champion/i.test(text);
 
-      // Build your scoring logic here
-      // Add parsed data to `results` array
+      if (winMatch) {
+        const winner = winMatch[1].trim();
+        const loser = winMatch[2].trim();
+        wrestlerPoints[winner] = (wrestlerPoints[winner] || 0) + 5;
+        if (titleMatch) wrestlerPoints[winner] += 7;
+        if (pinfall || submission) wrestlerPoints[winner] += 3;
+        if (titleChange) wrestlerPoints[winner] += 10;
+        if (signatureMoves) wrestlerPoints[winner] += 2 * signatureMoves;
+        if (special) wrestlerPoints[winner] += 5;
+
+        wrestlerPoints[loser] = (wrestlerPoints[loser] || 0) - 2;
+      } else if (drawMatch) {
+        const wrestler1 = drawMatch[1].trim();
+        const wrestler2 = drawMatch[2].trim();
+        wrestlerPoints[wrestler1] = (wrestlerPoints[wrestler1] || 0) + 2;
+        wrestlerPoints[wrestler2] = (wrestlerPoints[wrestler2] || 0) + 2;
+      }
+
+      const eliminationMatches = text.match(/(.+?) eliminated (.+?)$/i);
+      if (eliminationMatches) {
+        const eliminator = eliminationMatches[1].trim();
+        wrestlerPoints[eliminator] = (wrestlerPoints[eliminator] || 0) + 3;
+      }
     });
 
-    // Apply logic to update wrestlers table, assign points, etc.
-    res.json({ message: "Event imported successfully", resultsCount: results.length });
+    // Update database
+    const teamMap = {}; // cache wrestler -> team name
+    for (const [name, points] of Object.entries(wrestlerPoints)) {
+      const wrestlerRes = await pool.query(
+        "SELECT id, team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+        [name.toLowerCase()]
+      );
+      if (wrestlerRes.rows.length === 0) continue;
+
+      const { id: wrestlerId, team_id } = wrestlerRes.rows[0];
+
+      await pool.query("UPDATE wrestlers SET points = points + $1 WHERE id = $2", [points, wrestlerId]);
+
+      // Record transaction for historical accuracy
+      if (team_id) {
+        if (!teamMap[wrestlerId]) {
+          const teamRes = await pool.query("SELECT team_name FROM teams WHERE id = $1", [team_id]);
+          if (teamRes.rows.length > 0) {
+            teamMap[wrestlerId] = teamRes.rows[0].team_name;
+          }
+        }
+        await pool.query(
+          `INSERT INTO transactions (wrestler_name, team_name, action, points, event_name, event_date, timestamp)
+           VALUES ($1, $2, 'event', $3, $4, $5, NOW())`,
+          [name, teamMap[wrestlerId], points, event_name, event_date]
+        );
+      }
+    }
+
+    res.json({ message: "Event imported and points updated", updated: Object.keys(wrestlerPoints).length });
   } catch (err) {
-    console.error("❌ Error parsing HTML:", err);
-    res.status(500).json({ error: "Error parsing HTML" });
+    console.error("❌ Error processing event:", err);
+    res.status(500).json({ error: "Error processing event" });
   }
 });
 
