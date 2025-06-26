@@ -119,6 +119,24 @@ app.post("/api/dropWrestler", async (req, res) => {
   }
 });
 
+// Get a specific wrestler by name
+app.get("/api/wrestler/:name", async (req, res) => {
+  const { name } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT * FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+      [name.toLowerCase()]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Wrestler not found" });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Error fetching wrestler profile:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.get("/api/roster/:teamName", async (req, res) => {
   const { teamName } = req.params;
 

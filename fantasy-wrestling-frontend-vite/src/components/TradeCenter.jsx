@@ -8,6 +8,9 @@ const TradeCenter = () => {
   const queryParams = new URLSearchParams(location.search);
 
   const [trades, setTrades] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [rosters, setRosters] = useState({});
+
   const [form, setForm] = useState({
     offeringTeam: localStorage.getItem("teamName") || '',
     receivingTeam: '',
@@ -18,6 +21,7 @@ const TradeCenter = () => {
 
   useEffect(() => {
     fetchTrades();
+    fetchTeams();
   }, []);
 
   const fetchTrades = async () => {
@@ -26,6 +30,24 @@ const TradeCenter = () => {
       setTrades(res.data);
     } catch (err) {
       console.error("Error fetching trades:", err);
+    }
+  };
+
+  const fetchTeams = async () => {
+    try {
+      const res = await axios.get("https://fantasy-wrestling-backend.onrender.com/api/standings");
+      const teamNames = res.data.map(t => t.team_name);
+      setTeams(teamNames);
+
+      // Fetch rosters for each team
+      const rosterMap = {};
+      for (const team of teamNames) {
+        const rosterRes = await axios.get(`https://fantasy-wrestling-backend.onrender.com/api/roster/${team}`);
+        rosterMap[team] = rosterRes.data.map(w => w.wrestler_name);
+      }
+      setRosters(rosterMap);
+    } catch (err) {
+      console.error("Error fetching team rosters:", err);
     }
   };
 
@@ -52,29 +74,45 @@ const TradeCenter = () => {
       <h2>Trade Center</h2>
 
       <form onSubmit={submitTrade} className="trade-form">
-        <input
-          placeholder="Offering Team"
-          value={form.offeringTeam}
-          readOnly
-        />
-        <input
-          placeholder="Receiving Team"
+        <label>Your Team (Offering):</label>
+        <input value={form.offeringTeam} readOnly />
+
+        <label>Team You Want to Trade With:</label>
+        <select
           value={form.receivingTeam}
-          onChange={(e) => setForm({ ...form, receivingTeam: e.target.value })}
+          onChange={(e) => setForm({ ...form, receivingTeam: e.target.value, requestedWrestler: '' })}
           required
-        />
-        <input
-          placeholder="Offered Wrestler"
+        >
+          <option value="">Select a team</option>
+          {teams.filter(t => t !== form.offeringTeam).map(team => (
+            <option key={team} value={team}>{team}</option>
+          ))}
+        </select>
+
+        <label>Wrestler You're Offering:</label>
+        <select
           value={form.offeredWrestler}
           onChange={(e) => setForm({ ...form, offeredWrestler: e.target.value })}
           required
-        />
-        <input
-          placeholder="Requested Wrestler"
+        >
+          <option value="">Select your wrestler</option>
+          {(rosters[form.offeringTeam] || []).map(w => (
+            <option key={w} value={w}>{w}</option>
+          ))}
+        </select>
+
+        <label>Wrestler You Want:</label>
+        <select
           value={form.requestedWrestler}
           onChange={(e) => setForm({ ...form, requestedWrestler: e.target.value })}
           required
-        />
+        >
+          <option value="">Select their wrestler</option>
+          {(rosters[form.receivingTeam] || []).map(w => (
+            <option key={w} value={w}>{w}</option>
+          ))}
+        </select>
+
         <button type="submit">Propose Trade</button>
       </form>
 

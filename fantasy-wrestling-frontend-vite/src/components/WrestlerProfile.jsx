@@ -35,10 +35,9 @@ const WrestlerProfile = () => {
       <h2>{wrestler.wrestler_name}</h2>
       <p>Brand: {wrestler.brand}</p>
       <p>Points: {wrestler.points}</p>
-      <p>Team: {wrestler.team_id || "Free Agent"}</p>
+      <p>Team: {wrestler.team_id ? `Team ID ${wrestler.team_id}` : "Free Agent"}</p>
 
-      {/* ✅ Show trade button if wrestler is on another team */}
-      {wrestler.team_id && wrestler.team_id.toLowerCase() !== userTeam && (
+      {wrestler.team_id && userTeam && (
         <button onClick={proposeTrade}>Propose Trade</button>
       )}
     </div>
