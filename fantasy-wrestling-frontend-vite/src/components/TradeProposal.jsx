@@ -1,5 +1,8 @@
+// src/components/TradeProposal.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+
+const BASE_URL = "https://fantasy-wrestling-backend.onrender.com";
 
 const TradeProposal = () => {
   const { opponentTeam, requestedWrestler } = useParams();
@@ -18,8 +21,8 @@ const TradeProposal = () => {
     const fetchRosters = async () => {
       try {
         const [userRes, opponentRes] = await Promise.all([
-          fetch(`/api/roster/${encodeURIComponent(userTeam)}`),
-          fetch(`/api/roster/${encodeURIComponent(opponentTeam)}`)
+          fetch(`${BASE_URL}/api/roster/${encodeURIComponent(userTeam)}`),
+          fetch(`${BASE_URL}/api/roster/${encodeURIComponent(opponentTeam)}`)
         ]);
 
         if (!userRes.ok || !opponentRes.ok) throw new Error("Failed to fetch rosters");
@@ -32,7 +35,6 @@ const TradeProposal = () => {
         setUserRoster(userData);
         setOpponentRoster(opponentData);
 
-        // Default the requested wrestler as selected
         if (requestedWrestler) {
           setRequested([requestedWrestler]);
         }
@@ -55,20 +57,20 @@ const TradeProposal = () => {
 
   const submitTrade = async () => {
     if (offered.length === 0 || requested.length === 0) {
-      alert("Please select at least one wrestler from each side.");
+      alert("Please select at least one wrestler from each team.");
       return;
     }
 
     try {
-      const res = await fetch("/api/proposeTrade", {
+      const res = await fetch(`${BASE_URL}/api/proposeTrade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           offeringTeam: userTeam,
           receivingTeam: opponentTeam,
           offeredWrestlers: offered,
-          requestedWrestlers: requested,
-        }),
+          requestedWrestlers: requested
+        })
       });
 
       if (!res.ok) throw new Error("Trade proposal failed");
