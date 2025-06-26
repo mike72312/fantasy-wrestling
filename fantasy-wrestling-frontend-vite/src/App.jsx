@@ -27,7 +27,7 @@ const App = () => {
           <Route path="/standings" element={<StandingsAndTransactions />} />
           <Route path="/roster/:teamName" element={<TeamRoster />} />
           <Route path="/wrestler/:wrestlerName" element={<WrestlerProfile />} />
-          <Route path="/event-form" element={<EventForm />} />
+          <Route path="/import-event" element={<ImportEvent />} />
           <Route path="/trade-center" element={<TradeCenter />} /> {/* ✅ NEW */}
           <Route path="/trade/:opponentTeam/:requestedWrestler" element={<TradeProposal />} /> {/* ✅ NEW */}
           <Route path="/trade-inbox" element={<TradeInbox />} /> {/* ✅ NEW */}
