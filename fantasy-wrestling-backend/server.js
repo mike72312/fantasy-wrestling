@@ -91,6 +91,30 @@ app.post("/api/dropWrestler", async (req, res) => {
   }
 });
 
+app.get("/api/roster/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+
+  try {
+    const teamRes = await pool.query(
+      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
+      [teamName]
+    );
+    if (teamRes.rows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const teamId = teamRes.rows[0].id;
+    const result = await pool.query(
+      "SELECT wrestler_name FROM wrestlers WHERE team_id = $1 ORDER BY wrestler_name",
+      [teamId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching roster:", err);
+    res.status(500).json({ error: "Failed to fetch team roster" });
+  }
+});
+
 // Get team points
 app.get("/api/teamPoints/:teamName", async (req, res) => {
   const { teamName } = req.params;
