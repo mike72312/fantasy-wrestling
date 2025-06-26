@@ -1,4 +1,6 @@
+// src/components/Home.jsx
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const Home = () => {
   const [teamName, setTeamName] = useState("");
@@ -12,7 +14,12 @@ const Home = () => {
     <div className="container">
       <h1>Fantasy Wrestling League</h1>
       {teamName ? (
-        <p>Welcome, {teamName}! You can view your <a href={`/teamroster/${encodeURIComponent(teamName)}`}>teamroster here</a>.</p>
+        <p>
+          Welcome, {teamName}! You can view your{" "}
+          <Link to={`/roster/${encodeURIComponent(teamName)}`}>
+            team roster here
+          </Link>.
+        </p>
       ) : (
         <p>Please log in or select a team to get started.</p>
       )}
