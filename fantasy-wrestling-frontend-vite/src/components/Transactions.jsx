@@ -4,7 +4,7 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-    fetch("https://fantasy-wrestling-backend.onrender.com/api/transactions")
+    fetch("https://wrestling-backend2.onrender.com/api/transactions")
       .then((res) => res.json())
       .then((data) => setTransactions(data))
       .catch((err) => console.error("❌ Error fetching transactions:", err));

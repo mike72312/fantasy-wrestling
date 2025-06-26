@@ -7,7 +7,7 @@ const AvailableWrestlers = () => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch("https://fantasy-wrestling-backend.onrender.com/api/availableWrestlers")
+    fetch("https://wrestling-backend2.onrender.com/api/availableWrestlers")
       .then((res) => res.json())
       .then((data) => {
         const sorted = data.sort((a, b) => b.points - a.points);
@@ -36,7 +36,7 @@ const AvailableWrestlers = () => {
     }
 
     try {
-      const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/addWrestler", {
+      const response = await fetch("https://wrestling-backend2.onrender.com/api/addWrestler", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
