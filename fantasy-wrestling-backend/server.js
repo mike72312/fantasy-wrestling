@@ -67,7 +67,21 @@ app.post("/api/addWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query("UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2 AND team_id IS NULL", [teamId, wrestlerName]);
+
+    const updateResult = await pool.query(
+      "UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2 AND team_id IS NULL",
+      [teamId, wrestlerName]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(400).json({ error: "Wrestler already on a team or not found." });
+    }
+
+    await pool.query(
+      "INSERT INTO transactions (wrestler_name, team_name, action, timestamp) VALUES ($1, $2, 'add', NOW())",
+      [wrestlerName, teamName]
+    );
+
     res.json({ message: `${wrestlerName} added to ${teamName}` });
   } catch (err) {
     console.error("Error adding wrestler:", err);
@@ -83,7 +97,21 @@ app.post("/api/dropWrestler", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
     const teamId = teamRes.rows[0].id;
-    await pool.query("UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2", [wrestlerName, teamId]);
+
+    const updateResult = await pool.query(
+      "UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2",
+      [wrestlerName, teamId]
+    );
+
+    if (updateResult.rowCount === 0) {
+      return res.status(400).json({ error: "Wrestler not on this team or not found." });
+    }
+
+    await pool.query(
+      "INSERT INTO transactions (wrestler_name, team_name, action, timestamp) VALUES ($1, $2, 'drop', NOW())",
+      [wrestlerName, teamName]
+    );
+
     res.json({ message: `${wrestlerName} dropped from ${teamName}` });
   } catch (err) {
     console.error("Error dropping wrestler:", err);
