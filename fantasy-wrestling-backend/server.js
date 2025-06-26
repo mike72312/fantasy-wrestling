@@ -268,7 +268,9 @@ app.post("/api/importEvent", async (req, res) => {
 
   if (url) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0" } // avoids bot-blocking
+      });
       if (!response.ok) throw new Error("Failed to fetch URL");
       eventHtml = await response.text();
     } catch (err) {
@@ -285,44 +287,40 @@ app.post("/api/importEvent", async (req, res) => {
     const $ = cheerio.load(eventHtml);
     const wrestlerPoints = {};
 
-    $(".result").each((_, el) => {
+    // ✅ Parse match winners
+    $("ol > li").each((_, el) => {
       const text = $(el).text().trim();
 
-      const winMatch = text.match(/^(.+?) defeated (.+?) via/);
-      const drawMatch = text.match(/^(.+?) fought (.+?) to a draw/i);
-      const titleMatch = /title/i.test(text);
-      const isElimination = /eliminated/i.test(text);
-      const pinfall = /pinfall/i.test(text);
-      const submission = /submission/i.test(text);
-      const signatureMoves = (text.match(/signature move/gi) || []).length;
-      const special = /confronts|returns|cash-in|turns|debuts/i.test(text);
-      const titleChange = /new champion/i.test(text);
+      const winMatch = text.match(/^(.+?)\s+\d+\s+pts\s+Win\s+vs\s+(.+)$/i);
+      const teamWinMatch = text.match(/^(.+?)\s+\d+\s+pts\s+Team Win\s+vs\s+(.+)$/i);
+      const titleMatch = /championship/i.test(text);
 
       if (winMatch) {
         const winner = winMatch[1].trim();
         const loser = winMatch[2].trim();
         wrestlerPoints[winner] = (wrestlerPoints[winner] || 0) + 5;
         if (titleMatch) wrestlerPoints[winner] += 7;
-        if (pinfall || submission) wrestlerPoints[winner] += 3;
-        if (titleChange) wrestlerPoints[winner] += 10;
-        if (signatureMoves) wrestlerPoints[winner] += 2 * signatureMoves;
-        if (special) wrestlerPoints[winner] += 5;
-
         wrestlerPoints[loser] = (wrestlerPoints[loser] || 0) - 2;
-      } else if (drawMatch) {
-        const wrestler1 = drawMatch[1].trim();
-        const wrestler2 = drawMatch[2].trim();
-        wrestlerPoints[wrestler1] = (wrestlerPoints[wrestler1] || 0) + 2;
-        wrestlerPoints[wrestler2] = (wrestlerPoints[wrestler2] || 0) + 2;
-      }
-
-      const eliminationMatches = text.match(/(.+?) eliminated (.+?)$/i);
-      if (eliminationMatches) {
-        const eliminator = eliminationMatches[1].trim();
-        wrestlerPoints[eliminator] = (wrestlerPoints[eliminator] || 0) + 3;
+      } else if (teamWinMatch) {
+        const winner = teamWinMatch[1].trim();
+        const loser = teamWinMatch[2].trim();
+        wrestlerPoints[winner] = (wrestlerPoints[winner] || 0) + 3;
+        wrestlerPoints[loser] = (wrestlerPoints[loser] || 0) - 1;
       }
     });
 
+    // ✅ Parse Bonus Points
+    $("h2:contains('Bonus Points') + ol > li").each((_, el) => {
+      const text = $(el).text().trim();
+      const match = text.match(/^(.+?)\s+—\s+(\d+)\s+pts/i);
+      if (match) {
+        const name = match[1].trim();
+        const points = parseInt(match[2]);
+        wrestlerPoints[name] = (wrestlerPoints[name] || 0) + points;
+      }
+    });
+
+    // ✅ Apply scoring to DB
     const summary = [];
 
     for (const [name, points] of Object.entries(wrestlerPoints)) {
@@ -334,10 +332,13 @@ app.post("/api/importEvent", async (req, res) => {
 
       const { id: wrestlerId, team_id } = wrestlerRes.rows[0];
 
-      // 1. Update total points in wrestlers table
-      await pool.query("UPDATE wrestlers SET points = points + $1 WHERE id = $2", [points, wrestlerId]);
+      // Update wrestler's current total points
+      await pool.query(
+        "UPDATE wrestlers SET points = points + $1 WHERE id = $2",
+        [points, wrestlerId]
+      );
 
-      // 2. Log event points in event_points table
+      // Insert historical event record
       await pool.query(
         `INSERT INTO event_points (wrestler_id, team_id, event_name, event_date, points)
          VALUES ($1, $2, $3, $4, $5)`,
@@ -347,7 +348,11 @@ app.post("/api/importEvent", async (req, res) => {
       summary.push({ wrestler: name, points });
     }
 
-    res.json({ message: "Event imported and points updated", updated: summary.length, details: summary });
+    res.json({
+      message: "✅ Event imported and points updated",
+      updated: summary.length,
+      details: summary
+    });
   } catch (err) {
     console.error("❌ Error processing event:", err);
     res.status(500).json({ error: "Error processing event" });
