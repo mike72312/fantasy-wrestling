@@ -37,7 +37,7 @@ app.get("/api/availableWrestlers", async (req, res) => {
   }
 });
 
-// Get teamroster for a specific team
+// Get team roster
 app.get("/api/roster/:teamName", async (req, res) => {
   const { teamName } = req.params;
   try {
@@ -48,14 +48,14 @@ app.get("/api/roster/:teamName", async (req, res) => {
     if (teamRes.rows.length === 0) return res.status(404).send("Team not found.");
 
     const teamId = teamRes.rows[0].id;
-    const teamrosterRes = await pool.query(
-      "SELECT wrestler_name, points FROM wrestlers WHERE team_id = $1",
+    const result = await pool.query(
+      "SELECT wrestler_name, points FROM wrestlers WHERE team_id = $1 ORDER BY wrestler_name",
       [teamId]
     );
-    res.json(teamrosterRes.rows);
+    res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching team teamroster:", err);
-    res.status(500).send("Error fetching team teamroster.");
+    console.error("Error fetching team roster:", err);
+    res.status(500).send("Error fetching team roster.");
   }
 });
 
@@ -137,30 +137,6 @@ app.get("/api/wrestler/:name", async (req, res) => {
   }
 });
 
-app.get("/api/roster/:teamName", async (req, res) => {
-  const { teamName } = req.params;
-
-  try {
-    const teamRes = await pool.query(
-      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
-      [teamName]
-    );
-    if (teamRes.rows.length === 0) {
-      return res.status(404).json({ error: "Team not found" });
-    }
-
-    const teamId = teamRes.rows[0].id;
-    const result = await pool.query(
-      "SELECT wrestler_name FROM wrestlers WHERE team_id = $1 ORDER BY wrestler_name",
-      [teamId]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching roster:", err);
-    res.status(500).json({ error: "Failed to fetch team roster" });
-  }
-});
-
 // Get team points
 app.get("/api/teamPoints/:teamName", async (req, res) => {
   const { teamName } = req.params;
@@ -177,15 +153,19 @@ app.get("/api/teamPoints/:teamName", async (req, res) => {
   }
 });
 
-// Propose a trade
+// ✅ Propose a multi-wrestler trade
 app.post("/api/proposeTrade", async (req, res) => {
-  const { offeringTeam, receivingTeam, offeredWrestler, requestedWrestler } = req.body;
+  const { offeringTeam, receivingTeam, offeredWrestlers, requestedWrestlers } = req.body;
+  if (!offeringTeam || !receivingTeam || !Array.isArray(offeredWrestlers) || !Array.isArray(requestedWrestlers)) {
+    return res.status(400).json({ error: "Invalid trade proposal payload" });
+  }
+
   try {
     const result = await pool.query(`
-      INSERT INTO trade_proposals (offering_team, receiving_team, offered_wrestler, requested_wrestler, status, created_at)
+      INSERT INTO trade_proposals (offering_team, receiving_team, offered_wrestlers, requested_wrestlers, status, created_at)
       VALUES ($1, $2, $3, $4, 'pending', NOW())
       RETURNING *;
-    `, [offeringTeam, receivingTeam, offeredWrestler, requestedWrestler]);
+    `, [offeringTeam, receivingTeam, offeredWrestlers, requestedWrestlers]);
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error("Error proposing trade:", err);
@@ -232,10 +212,9 @@ app.get("/api/standings", async (req, res) => {
   }
 });
 
-// Import event results
+// Import event results and update points
 app.post("/api/importEvent", async (req, res) => {
   const { html, event_name, event_date } = req.body;
-
   if (!html || !event_name || !event_date) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -246,8 +225,6 @@ app.post("/api/importEvent", async (req, res) => {
 
     $(".result").each((_, el) => {
       const text = $(el).text().trim();
-
-      // Match pattern like "Becky Lynch defeated Bayley via pinfall"
       const winMatch = text.match(/^(.+?) defeated (.+?) via/);
       const drawMatch = text.match(/^(.+?) fought (.+?) to a draw/i);
       const titleMatch = /title/i.test(text);
@@ -263,43 +240,31 @@ app.post("/api/importEvent", async (req, res) => {
         results.push({ name: winner, points: 5 });
         results.push({ name: loser, points: -2 });
 
-        if (titleMatch) {
-          results.find(r => r.name === winner).points += 7;
-        }
-        if (pinfall || submission) {
-          results.find(r => r.name === winner).points += 3;
-        }
-        if (signatureMoves) {
-          results.find(r => r.name === winner).points += signatureMoves * 2;
-        }
+        if (titleMatch) results.find(r => r.name === winner).points += 7;
+        if (pinfall || submission) results.find(r => r.name === winner).points += 3;
+        if (signatureMoves) results.find(r => r.name === winner).points += signatureMoves * 2;
       } else if (drawMatch) {
         const [one, two] = [drawMatch[1].trim(), drawMatch[2].trim()];
         results.push({ name: one, points: 2 });
         results.push({ name: two, points: 2 });
       } else if (isElimination) {
         const match = text.match(/^(.+?) eliminated/i);
-        if (match) {
-          results.push({ name: match[1].trim(), points: 3 });
-        }
+        if (match) results.push({ name: match[1].trim(), points: 3 });
       }
 
       if (special) {
         const match = text.match(/^(.+?) /);
-        if (match) {
-          results.push({ name: match[1].trim(), points: 5 });
-        }
+        if (match) results.push({ name: match[1].trim(), points: 5 });
       }
     });
 
-    // Aggregate points by wrestler
     const pointsMap = {};
     for (const { name, points } of results) {
-      const key = name.trim().toLowerCase();
+      const key = name.toLowerCase();
       if (!pointsMap[key]) pointsMap[key] = { name, points: 0 };
       pointsMap[key].points += points;
     }
 
-    // Update wrestlers in the DB
     for (const { name, points } of Object.values(pointsMap)) {
       await pool.query(
         `UPDATE wrestlers SET points = COALESCE(points, 0) + $1 WHERE LOWER(wrestler_name) = LOWER($2)`,
@@ -313,7 +278,8 @@ app.post("/api/importEvent", async (req, res) => {
     res.status(500).json({ error: "Failed to process event." });
   }
 });
-// Must be at the very end of server.js
+
+// Start the server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
 });
