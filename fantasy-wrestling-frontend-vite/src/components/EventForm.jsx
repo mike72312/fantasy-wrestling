@@ -2,36 +2,49 @@ import React, { useState } from "react";
 
 const EventForm = () => {
   const [file, setFile] = useState(null);
+  const [eventUrl, setEventUrl] = useState("");
   const [eventName, setEventName] = useState("");
   const [eventDate, setEventDate] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!file || !eventName || !eventDate) {
-      alert("All fields required.");
+
+    if (!eventName || !eventDate) {
+      alert("Event name and date are required.");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const html = reader.result;
+    try {
+      let payload = { event_name: eventName, event_date: eventDate };
 
-      try {
-        const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/importEvent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ html, event_name: eventName, event_date: eventDate }),
-        });
-
-        if (!response.ok) throw new Error("Upload failed");
-        alert("Event imported successfully!");
-      } catch (err) {
-        console.error("❌ Upload failed:", err);
-        alert("Error uploading event.");
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = async () => {
+          payload.html = reader.result;
+          await upload(payload);
+        };
+        reader.readAsText(file);
+      } else if (eventUrl) {
+        payload.url = eventUrl;
+        await upload(payload);
+      } else {
+        alert("Please provide either a file or a URL.");
       }
-    };
+    } catch (err) {
+      console.error("❌ Upload failed:", err);
+      alert("Error uploading event.");
+    }
+  };
 
-    reader.readAsText(file);
+  const upload = async (payload) => {
+    const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/importEvent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) throw new Error("Upload failed");
+    alert("Event imported successfully!");
   };
 
   return (
@@ -54,8 +67,19 @@ const EventForm = () => {
         <input
           type="file"
           accept=".html"
-          onChange={(e) => setFile(e.target.files[0])}
-          required
+          onChange={(e) => {
+            setFile(e.target.files[0]);
+            setEventUrl(""); // Clear URL if file is uploaded
+          }}
+        />
+        <input
+          type="url"
+          placeholder="or paste DropTheBelt event URL"
+          value={eventUrl}
+          onChange={(e) => {
+            setEventUrl(e.target.value);
+            setFile(null); // Clear file if URL is typed
+          }}
         />
         <button type="submit">Import</button>
       </form>

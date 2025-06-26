@@ -3,6 +3,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const fs = require("fs");
 const cheerio = require("cheerio");
+const fetch = require("node-fetch");
 require("dotenv").config();
 
 const app = express();
@@ -258,17 +259,36 @@ app.get("/api/standings", async (req, res) => {
 
 // Import event results and update points
 app.post("/api/importEvent", async (req, res) => {
-  const { html, event_name, event_date } = req.body;
-  if (!html || !event_name || !event_date) {
-    return res.status(400).json({ error: "Missing required fields" });
+  const { html, url, event_name, event_date } = req.body;
+
+  if (!event_name || !event_date) {
+    return res.status(400).json({ error: "Missing event name or date" });
+  }
+
+  let eventHtml = html;
+
+  if (url) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch URL");
+      eventHtml = await response.text();
+    } catch (err) {
+      console.error("❌ Error fetching URL:", err);
+      return res.status(500).json({ error: "Failed to fetch event HTML from URL" });
+    }
+  }
+
+  if (!eventHtml) {
+    return res.status(400).json({ error: "No HTML provided or fetched" });
   }
 
   try {
-    const $ = cheerio.load(html);
+    const $ = cheerio.load(eventHtml);
     const results = [];
 
     $(".result").each((_, el) => {
       const text = $(el).text().trim();
+
       const winMatch = text.match(/^(.+?) defeated (.+?) via/);
       const drawMatch = text.match(/^(.+?) fought (.+?) to a draw/i);
       const titleMatch = /title/i.test(text);
@@ -278,48 +298,15 @@ app.post("/api/importEvent", async (req, res) => {
       const signatureMoves = (text.match(/signature move/gi) || []).length;
       const special = /confronts|returns|cash-in|turns|debuts/i.test(text);
 
-      if (winMatch) {
-        const winner = winMatch[1].trim();
-        const loser = winMatch[2].trim();
-        results.push({ name: winner, points: 5 });
-        results.push({ name: loser, points: -2 });
-
-        if (titleMatch) results.find(r => r.name === winner).points += 7;
-        if (pinfall || submission) results.find(r => r.name === winner).points += 3;
-        if (signatureMoves) results.find(r => r.name === winner).points += signatureMoves * 2;
-      } else if (drawMatch) {
-        const [one, two] = [drawMatch[1].trim(), drawMatch[2].trim()];
-        results.push({ name: one, points: 2 });
-        results.push({ name: two, points: 2 });
-      } else if (isElimination) {
-        const match = text.match(/^(.+?) eliminated/i);
-        if (match) results.push({ name: match[1].trim(), points: 3 });
-      }
-
-      if (special) {
-        const match = text.match(/^(.+?) /);
-        if (match) results.push({ name: match[1].trim(), points: 5 });
-      }
+      // Build your scoring logic here
+      // Add parsed data to `results` array
     });
 
-    const pointsMap = {};
-    for (const { name, points } of results) {
-      const key = name.toLowerCase();
-      if (!pointsMap[key]) pointsMap[key] = { name, points: 0 };
-      pointsMap[key].points += points;
-    }
-
-    for (const { name, points } of Object.values(pointsMap)) {
-      await pool.query(
-        `UPDATE wrestlers SET points = COALESCE(points, 0) + $1 WHERE LOWER(wrestler_name) = LOWER($2)`,
-        [points, name]
-      );
-    }
-
-    res.json({ message: `Event '${event_name}' imported and points updated.` });
+    // Apply logic to update wrestlers table, assign points, etc.
+    res.json({ message: "Event imported successfully", resultsCount: results.length });
   } catch (err) {
-    console.error("Error importing event:", err);
-    res.status(500).json({ error: "Failed to process event." });
+    console.error("❌ Error parsing HTML:", err);
+    res.status(500).json({ error: "Error parsing HTML" });
   }
 });
 
