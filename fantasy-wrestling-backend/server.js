@@ -287,27 +287,26 @@ app.post("/api/importEvent", async (req, res) => {
     const $ = cheerio.load(eventHtml);
     const eventDetails = [];
 
-    // ✅ Parse match results and extract descriptions
     $(".matchlist .result").each((_, el) => {
-      const text = $(el).text().trim();
-      const strongText = $(el).find("strong").first().text().trim();
+      const fullText = $(el).text().trim();
+      const winnerLoserMatch = fullText.match(/^(.+?) defeated (.+?) via/);
+      const drawMatch = fullText.match(/^(.+?) fought (.+?) to a draw/i);
+      const titleMatch = /title/i.test(fullText);
+      const eliminations = (fullText.match(/eliminated/gi) || []).length;
+      const pinfall = /pinfall/i.test(fullText);
+      const submission = /submission/i.test(fullText);
+      const signatureMoves = (fullText.match(/signature move/gi) || []).length;
+      const special = /confronts|returns|cash-in|turns|debuts/i.test(fullText);
+      const desc = fullText.length < 300 ? fullText : "Match Result";
 
-      const winMatch = text.match(/^(.+?) defeated (.+?) via/);
-      const drawMatch = text.match(/^(.+?) fought (.+?) to a draw/i);
-      const titleMatch = /title/i.test(text);
-      const eliminations = (text.match(/eliminated/gi) || []).length;
-      const pinfall = /pinfall/i.test(text);
-      const submission = /submission/i.test(text);
-      const signatureMoves = (text.match(/signature move/gi) || []).length;
-      const special = /confronts|returns|cash-in|turns|debuts/i.test(text);
-
-      if (winMatch) {
-        const winner = winMatch[1].trim();
-        const loser = winMatch[2].trim();
-        const desc = strongText || "Win";
+      if (winnerLoserMatch) {
+        const winner = winnerLoserMatch[1].trim();
+        const loser = winnerLoserMatch[2].trim();
         eventDetails.push({ name: winner, points: 5, description: desc });
-        if (titleMatch) eventDetails.push({ name: winner, points: 7, description: "Title Match Win" });
-        eventDetails.push({ name: loser, points: -2, description: "Loss" });
+        if (titleMatch) {
+          eventDetails.push({ name: winner, points: 7, description: "Title Match Win" });
+        }
+        eventDetails.push({ name: loser, points: -2, description: desc });
       } else if (drawMatch) {
         const name1 = drawMatch[1].trim();
         const name2 = drawMatch[2].trim();
@@ -316,7 +315,7 @@ app.post("/api/importEvent", async (req, res) => {
       }
 
       if (eliminations) {
-        const match = text.match(/^(.+?) eliminated/);
+        const match = fullText.match(/^(.+?) eliminated/);
         if (match) {
           const name = match[1].trim();
           eventDetails.push({ name, points: 3 * eliminations, description: `${eliminations} Eliminations` });
@@ -324,32 +323,32 @@ app.post("/api/importEvent", async (req, res) => {
       }
 
       if (pinfall || submission) {
-        const name = text.split(" ")[0].trim();
-        const desc = pinfall ? "Pinfall" : "Submission";
-        eventDetails.push({ name, points: 3, description: desc });
+        const name = fullText.split(" ")[0].trim();
+        const moveDesc = pinfall ? "Pinfall" : "Submission";
+        eventDetails.push({ name, points: 3, description: moveDesc });
       }
 
       if (signatureMoves) {
-        const name = text.split(" ")[0].trim();
+        const name = fullText.split(" ")[0].trim();
         eventDetails.push({ name, points: 2 * signatureMoves, description: `${signatureMoves} Signature Moves` });
       }
 
       if (special) {
-        const name = text.split(" ")[0].trim();
+        const name = fullText.split(" ")[0].trim();
         eventDetails.push({ name, points: 5, description: "Special Appearance" });
       }
     });
 
-    // ✅ Bonus Points
+    // ✅ Bonus Points section
     $("h2:contains('Bonus Points') + ol > li").each((_, el) => {
       const text = $(el).text().trim();
       const nameMatch = text.match(/^(.+?) — (\d+) pts/i);
       const linkText = $(el).find("a[href^='/OtherPoint']").text().trim();
+      const desc = linkText || text.split("—")[1]?.trim() || "Bonus";
 
       if (nameMatch) {
         const name = nameMatch[1].trim();
         const points = parseInt(nameMatch[2]);
-        const desc = linkText || "Bonus";
         eventDetails.push({ name, points, description: desc });
       }
     });
@@ -387,6 +386,7 @@ app.post("/api/importEvent", async (req, res) => {
     res.status(500).json({ error: "Error processing event" });
   }
 });
+
 
 app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
   const { name } = req.params;
