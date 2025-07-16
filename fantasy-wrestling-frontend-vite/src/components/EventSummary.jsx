@@ -3,8 +3,8 @@ import axios from "axios";
 
 const EventSummary = () => {
   const [events, setEvents] = useState([]);
-  const [searchWrestler, setSearchWrestler] = useState("");
-  const [searchEvent, setSearchEvent] = useState("");
+  const [selectedWrestler, setSelectedWrestler] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "event_date", direction: "desc" });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -15,6 +15,9 @@ const EventSummary = () => {
       .catch(err => console.error("Error loading event summary:", err));
   }, []);
 
+  const wrestlerOptions = [...new Set(events.map(e => e.wrestler_name))].sort();
+  const eventOptions = [...new Set(events.map(e => e.event_name))].sort();
+
   const handleSort = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
@@ -24,8 +27,8 @@ const EventSummary = () => {
   };
 
   const filtered = events.filter(e =>
-    e.wrestler_name.toLowerCase().includes(searchWrestler.toLowerCase()) &&
-    e.event_name.toLowerCase().includes(searchEvent.toLowerCase())
+    (selectedWrestler === "" || e.wrestler_name === selectedWrestler) &&
+    (selectedEvent === "" || e.event_name === selectedEvent)
   );
 
   const sorted = [...filtered].sort((a, b) => {
@@ -43,27 +46,34 @@ const EventSummary = () => {
     <div className="container">
       <h2>Event Summary</h2>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder="Search Wrestler"
-          value={searchWrestler}
+      <div style={{ marginBottom: "1rem", display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <select
+          value={selectedWrestler}
           onChange={e => {
-            setSearchWrestler(e.target.value);
+            setSelectedWrestler(e.target.value);
             setCurrentPage(1);
           }}
-          style={{ marginRight: "1rem", padding: "0.5rem" }}
-        />
-        <input
-          type="text"
-          placeholder="Search Event"
-          value={searchEvent}
+          style={{ padding: "0.5rem", minWidth: "200px" }}
+        >
+          <option value="">All Wrestlers</option>
+          {wrestlerOptions.map((wrestler, idx) => (
+            <option key={idx} value={wrestler}>{wrestler}</option>
+          ))}
+        </select>
+
+        <select
+          value={selectedEvent}
           onChange={e => {
-            setSearchEvent(e.target.value);
+            setSelectedEvent(e.target.value);
             setCurrentPage(1);
           }}
-          style={{ padding: "0.5rem" }}
-        />
+          style={{ padding: "0.5rem", minWidth: "200px" }}
+        >
+          <option value="">All Events</option>
+          {eventOptions.map((event, idx) => (
+            <option key={idx} value={event}>{event}</option>
+          ))}
+        </select>
       </div>
 
       <table className="styled-table">
