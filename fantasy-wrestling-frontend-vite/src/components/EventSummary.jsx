@@ -3,8 +3,12 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const EventSummary = () => {
-  const [grouped, setGrouped] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
+  const [events, setEvents] = useState([]);
+  const [searchWrestler, setSearchWrestler] = useState("");
+  const [searchEvent, setSearchEvent] = useState("");
+  const [sortConfig, setSortConfig] = useState({ key: "event_date", direction: "desc" });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
 
   useEffect(() => {
     console.log("📡 Fetching event summary...");
@@ -14,21 +18,58 @@ const EventSummary = () => {
       .catch((err) => console.error("❌ Error loading event summary:", err));
   }, []);
 
-  const filteredEvents = events.filter((entry) =>
-    entry.wrestler_name.toLowerCase().includes(search.toLowerCase())
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const filtered = events.filter(e =>
+    e.wrestler_name.toLowerCase().includes(searchWrestler.toLowerCase()) &&
+    e.event_name.toLowerCase().includes(searchEvent.toLowerCase())
   );
+
+  const sorted = [...filtered].sort((a, b) => {
+    const aVal = a[sortConfig.key] ?? "";
+    const bVal = b[sortConfig.key] ?? "";
+    if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="container">
-      <h2>Event Scoring Summary</h2>
-      <input
-        type="text"
-        placeholder="Search by wrestler name..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ width: "100%", padding: "0.5rem", marginBottom: "1rem" }}
-      />
-      <table className="wrestler-table">
+      <h2>Event Summary</h2>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <input
+          type="text"
+          placeholder="Search Wrestler"
+          value={searchWrestler}
+          onChange={e => {
+            setSearchWrestler(e.target.value);
+            setCurrentPage(1);
+          }}
+          style={{ marginRight: "1rem", padding: "0.5rem" }}
+        />
+        <input
+          type="text"
+          placeholder="Search Event"
+          value={searchEvent}
+          onChange={e => {
+            setSearchEvent(e.target.value);
+            setCurrentPage(1);
+          }}
+          style={{ padding: "0.5rem" }}
+        />
+      </div>
+
+      <table className="styled-table">
         <thead>
           <tr>
             <th>Date</th>
