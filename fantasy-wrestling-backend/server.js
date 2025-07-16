@@ -399,13 +399,14 @@ app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
 
     const wrestlerId = wrestlerRes.rows[0].id;
 const result = await pool.query(
-  `SELECT event_name, event_date, points, team_name, description
-   FROM event_points
-   WHERE wrestler_name = $1
-   ORDER BY event_date DESC`,
-  [req.params.name]
+  `SELECT ep.event_name, ep.event_date, ep.points, t.team_name, ep.description
+   FROM event_points ep
+   JOIN wrestlers w ON ep.wrestler_id = w.id
+   LEFT JOIN teams t ON ep.team_id = t.id
+   WHERE LOWER(w.wrestler_name) = LOWER($1)
+   ORDER BY ep.event_date DESC`,
+  [name]
 );
-
 
     res.json(result.rows);
   } catch (err) {
