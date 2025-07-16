@@ -3,170 +3,59 @@ import axios from "axios";
 
 const EventSummary = () => {
   const [events, setEvents] = useState([]);
-  const [searchWrestler, setSearchWrestler] = useState("");
-  const [searchEvent, setSearchEvent] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "event_date", direction: "desc" });
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    axios.get("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
-      .then(res => setEvents(res.data))
-      .catch(err => console.error("Error loading event summary:", err));
+    console.log("📡 Fetching event summary...");
+    fetch("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("✅ Data received:", data);
+        setEvents(data);
+      })
+      .catch((err) => console.error("❌ Error loading event summary:", err));
   }, []);
 
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const filtered = events.filter(e =>
-    e.wrestler_name.toLowerCase().includes(searchWrestler.toLowerCase()) &&
-    e.event_name.toLowerCase().includes(searchEvent.toLowerCase())
+  const filtered = events.filter((e) =>
+    e.wrestler_name.toLowerCase().includes(search.toLowerCase())
   );
-
-  const sorted = [...filtered].sort((a, b) => {
-    const aVal = a[sortConfig.key] ?? "";
-    const bVal = b[sortConfig.key] ?? "";
-    if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  const totalPages = Math.ceil(sorted.length / itemsPerPage);
-  const paginated = sorted.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="container">
       <h2>Event Summary</h2>
-
-      <div style={{ marginBottom: "1rem" }}>
-        <input
-          type="text"
-          placeholder="Search Wrestler"
-          value={searchWrestler}
-          onChange={e => {
-            setSearchWrestler(e.target.value);
-            setCurrentPage(1);
-          }}
-          style={{ marginRight: "1rem", padding: "0.5rem" }}
-        />
-        <input
-          type="text"
-          placeholder="Search Event"
-          value={searchEvent}
-          onChange={e => {
-            setSearchEvent(e.target.value);
-            setCurrentPage(1);
-          }}
-          style={{ padding: "0.5rem" }}
-        />
-      </div>
-
-      <table className="styled-table">
-        <thead>
-          <tr>
-            <th onClick={() => handleSort("event_name")}>Event</th>
-            <th onClick={() => handleSort("event_date")}>Date</th>
-            <th onClick={() => handleSort("wrestler_name")}>Wrestler</th>
-            <th onClick={() => handleSort("points")}>Points</th>
-            <th onClick={() => handleSort("description")}>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {paginated.map((entry, idx) => (
-            <tr key={idx}>
-              <td>{entry.event_name}</td>
-              <td>{new Date(entry.event_date).toLocaleDateString()}</td>
-              <td>{entry.wrestler_name}</td>
-              <td>{entry.points}</td>
-              <td>{entry.description?.trim() || "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
+      <input
+        type="text"
+        placeholder="Search by wrestler name..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: "1rem", padding: "0.5rem", width: "100%" }}
       />
-
-      <style>{`
-        .styled-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 10px 0;
-          font-size: 1rem;
-          text-align: left;
-        }
-
-        .styled-table th {
-          background-color: #f4f4f4;
-          cursor: pointer;
-          padding: 0.6rem;
-          border-bottom: 2px solid #ccc;
-        }
-
-        .styled-table td {
-          padding: 0.6rem;
-          border-bottom: 1px solid #eee;
-        }
-
-        .styled-table tr:hover {
-          background-color: #f9f9f9;
-        }
-
-        .pagination {
-          margin: 1rem 0;
-          display: flex;
-          justify-content: center;
-          gap: 0.5rem;
-        }
-
-        .pagination button {
-          padding: 0.4rem 0.8rem;
-          border: 1px solid #ccc;
-          background-color: white;
-          cursor: pointer;
-        }
-
-        .pagination button.active {
-          background-color: #007bff;
-          color: white;
-          font-weight: bold;
-        }
-
-        .pagination button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
-    </div>
-  );
-};
-
-const Pagination = ({ currentPage, totalPages, onPageChange }) => {
-  if (totalPages <= 1) return null;
-
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-
-  return (
-    <div className="pagination">
-      <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>Prev</button>
-      {pageNumbers.map(num => (
-        <button
-          key={num}
-          className={currentPage === num ? "active" : ""}
-          onClick={() => onPageChange(num)}
-        >
-          {num}
-        </button>
-      ))}
-      <button onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>Next</button>
+      {filtered.length === 0 ? (
+        <p>No matching results.</p>
+      ) : (
+        <table className="wrestler-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Date</th>
+              <th>Wrestler</th>
+              <th>Points</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((entry, idx) => (
+              <tr key={idx}>
+                <td>{entry.event_name}</td>
+                <td>{new Date(entry.event_date).toLocaleDateString()}</td>
+                <td>{entry.wrestler_name}</td>
+                <td>{entry.points}</td>
+                <td>{entry.description ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };

@@ -32,7 +32,7 @@ const App = () => {
           <Route path="/trade-center" element={<TradeCenter />} /> {/* ✅ NEW */}
           <Route path="/trade/:opponentTeam/:requestedWrestler" element={<TradeProposal />} /> {/* ✅ NEW */}
           <Route path="/trade-inbox" element={<TradeInbox />} /> {/* ✅ NEW */}
-          <Route path="/event-summary" element={<EventSummary />} />
+          <Route path="/events" element={<EventSummary />} />
         </Routes>
       </div>
     </Router>
