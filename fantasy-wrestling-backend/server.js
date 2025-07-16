@@ -412,13 +412,14 @@ app.get("/api/eventSummary", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        event_name,
-        event_date,
-        wrestler_name,
-        points,
-        description
-      FROM event_points
-      ORDER BY event_date DESC, wrestler_name ASC;
+        ep.event_name,
+        ep.event_date,
+        w.wrestler_name,
+        ep.points,
+        ep.description
+      FROM event_points ep
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      ORDER BY ep.event_date DESC, w.wrestler_name ASC;
     `);
     res.json(result.rows);
   } catch (err) {
