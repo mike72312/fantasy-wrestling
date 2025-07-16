@@ -449,7 +449,7 @@ app.get("/api/eventSummary", async (req, res) => {
         ep.description
       FROM event_points ep
       JOIN wrestlers w ON ep.wrestler_id = w.id
-      ORDER BY ep.event_date DESC, w.wrestler_name ASC;
+      ORDER BY ep.event_date DESC, w.wrestler_name ASC;  -- ✅ Offending position
     `);
     res.json(result.rows);
   } catch (err) {
