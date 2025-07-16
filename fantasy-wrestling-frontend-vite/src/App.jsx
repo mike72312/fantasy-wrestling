@@ -13,6 +13,7 @@ import EventForm from './components/EventForm';
 import TradeCenter from './components/TradeCenter'; // ✅ NEW
 import TradeProposal from './components/TradeProposal'; // ✅ NEW
 import TradeInbox from './components/TradeInbox'; // ✅ NEW
+import EventSummary from "./components/EventSummary";
 
 const App = () => {
   return (
@@ -31,6 +32,7 @@ const App = () => {
           <Route path="/trade-center" element={<TradeCenter />} /> {/* ✅ NEW */}
           <Route path="/trade/:opponentTeam/:requestedWrestler" element={<TradeProposal />} /> {/* ✅ NEW */}
           <Route path="/trade-inbox" element={<TradeInbox />} /> {/* ✅ NEW */}
+          <Route path="/events" element={<EventSummary />} />
         </Routes>
       </div>
     </Router>
