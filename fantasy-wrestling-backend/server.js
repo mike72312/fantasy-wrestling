@@ -408,16 +408,30 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
 });
 
 // Get detailed event summary: wrestler points by event
+// GET /api/eventSummary
 app.get("/api/eventSummary", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT event_name, event_date, wrestler_name, team_name, points, description
-      FROM event_points
-      ORDER BY event_date DESC, event_name, points DESC;
+      SELECT 
+        ep.event_date,
+        ep.event_name,
+        ep.wrestler_name,
+        ep.points,
+        ep.description,
+        COALESCE(t.name, NULL) as team_name
+      FROM event_points ep
+      LEFT JOIN transactions tr ON tr.wrestler_name = ep.wrestler_name AND tr.timestamp <= ep.event_date
+      LEFT JOIN (
+        SELECT DISTINCT ON (wrestler_name) wrestler_name, team_name AS name
+        FROM transactions
+        WHERE action IN ('add', 'trade_in')
+        ORDER BY wrestler_name, timestamp DESC
+      ) t ON t.wrestler_name = ep.wrestler_name
+      ORDER BY ep.event_date DESC, ep.event_name;
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching detailed event summary:", err);
+    console.error("Error fetching event summary:", err);
     res.status(500).json({ error: "Failed to fetch event summary" });
   }
 });
