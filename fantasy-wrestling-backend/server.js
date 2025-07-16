@@ -441,18 +441,13 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
 app.get("/api/eventSummary", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
-        event_name,
-        event_date,
-        wrestler_name,
-        points,
-        description
+      SELECT event_name, event_date, wrestler_name, team_name, points, description
       FROM event_points
-      ORDER BY event_date DESC, wrestler_name ASC;
+      ORDER BY event_date DESC, event_name, points DESC;
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching event summary:", err);
+    console.error("Error fetching detailed event summary:", err);
     res.status(500).json({ error: "Failed to fetch event summary" });
   }
 });
