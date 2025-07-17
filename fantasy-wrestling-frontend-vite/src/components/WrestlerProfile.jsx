@@ -3,21 +3,21 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const WrestlerProfile = () => {
-  const { wrestlername } = useParams();
+  const { wrestler_name } = useParams();
   const [wrestler, setWrestler] = useState(null);
   const [events, setEvents] = useState([]);
   const [sortBy, setSortBy] = useState("event_date");
   const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${werestlername}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${werestler_name}`)
       .then(res => res.json())
       .then(setWrestler);
 
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/eventPoints/wrestler/${wrestlername}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/eventPoints/wrestler/${wrestler_name}`)
       .then(res => res.json())
       .then(setEvents);
-  }, [wrestlername]);
+  }, [wrestler_name]);
 
   if (!wrestler) return <div>Loading...</div>;
 
