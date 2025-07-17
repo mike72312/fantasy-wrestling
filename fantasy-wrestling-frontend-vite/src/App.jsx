@@ -14,6 +14,7 @@ import TradeCenter from './components/TradeCenter'; // ✅ NEW
 import TradeProposal from './components/TradeProposal'; // ✅ NEW
 import TradeInbox from './components/TradeInbox'; // ✅ NEW
 import EventSummary from "./components/EventSummary";
+import LeagueSettings from "./components/LeagueSettings";
 
 const App = () => {
   return (
@@ -33,6 +34,7 @@ const App = () => {
           <Route path="/trade/:opponentTeam/:requestedWrestler" element={<TradeProposal />} /> {/* ✅ NEW */}
           <Route path="/trade-inbox" element={<TradeInbox />} /> {/* ✅ NEW */}
           <Route path="/events" element={<EventSummary />} />
+          <Route path="/settings" element={<LeagueSettings />} />
         </Routes>
       </div>
     </Router>

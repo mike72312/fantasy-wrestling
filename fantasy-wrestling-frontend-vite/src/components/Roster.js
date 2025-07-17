@@ -1,20 +1,20 @@
+// src/components/Roster.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const teamroster = () => {
+const Roster = () => {
   const [teamroster, setteamroster] = useState([]);
-  
+
   useEffect(() => {
     const teamName = localStorage.getItem('teamName');
     if (teamName) {
-      // Fetch teamroster for the logged-in user (team)
       axios
         .get(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
         .then((response) => {
-          setteamroster(response.data);  // Set the teamroster for the team
+          setteamroster(response.data);
         })
         .catch((error) => {
-          console.error("Error fetching team teamroster:", error);
+          console.error("Error fetching team roster:", error);
         });
     }
   }, []);
@@ -33,9 +33,7 @@ const teamroster = () => {
       })
       .then((response) => {
         alert(response.data.message);
-        setteamroster((prevteamroster) =>
-          prevteamroster.filter((wrestlerName) => wrestlerName !== wrestler)
-        );
+        setteamroster((prev) => prev.filter((w) => w.wrestler_name !== wrestler));
       })
       .catch((error) => {
         console.error("Error dropping wrestler:", error);
@@ -45,16 +43,18 @@ const teamroster = () => {
 
   return (
     <div className="container">
-      <h2>Your teamroster</h2>
+      <h2>Your Roster</h2>
       <div className="wrestler-list">
         {teamroster.length === 0 ? (
-          <p>Your teamroster is empty.</p>
+          <p>Your roster is empty.</p>
         ) : (
           teamroster.map((wrestler, index) => (
             <div className="card" key={index}>
               <div className="card-content">
-                <h4>{wrestler}</h4>
-                <button className="drop-button" onClick={() => handleDropWrestler(wrestler)}>
+                <h4>
+                  {wrestler.wrestler_name} ({wrestler.points} pts) – <strong>{wrestler.starter ? "Starter" : "Bench"}</strong>
+                </h4>
+                <button className="drop-button" onClick={() => handleDropWrestler(wrestler.wrestler_name)}>
                   Drop
                 </button>
               </div>
@@ -66,4 +66,4 @@ const teamroster = () => {
   );
 };
 
-export default teamroster;
+export default Roster;

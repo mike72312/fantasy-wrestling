@@ -18,23 +18,6 @@ const TeamRoster = () => {
   }, [teamName]);
 
   const handleDrop = async (wrestlerName) => {
-    const restrictedHours = [
-      { day: 1, start: 20, end: 23 },
-      { day: 5, start: 20, end: 23 },
-      { day: 6, start: 20, end: 23 },
-    ];
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentHour = now.getHours();
-    const isRestricted = restrictedHours.some(
-      (r) => r.day === currentDay && currentHour >= r.start && currentHour < r.end
-    );
-
-    if (isRestricted) {
-      alert("Dropping wrestlers is restricted during show hours.");
-      return;
-    }
-
     try {
       const res = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
         method: "POST",
@@ -48,6 +31,28 @@ const TeamRoster = () => {
     } catch (err) {
       console.error("Error dropping wrestler:", err);
       alert("Failed to drop wrestler.");
+    }
+  };
+
+  const handleToggleStarter = async (wrestlerName, newStatus) => {
+    try {
+      const res = await fetch("https://fantasy-wrestling-backend.onrender.com/api/setStarterStatus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wrestlerName, isStarter: newStatus }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.error || "Error updating starter status");
+        return;
+      }
+
+      const updatedRoster = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`).then(res => res.json());
+      setteamroster(updatedRoster);
+    } catch (err) {
+      console.error("Error toggling starter status:", err);
+      alert("Failed to update starter status.");
     }
   };
 
@@ -84,11 +89,16 @@ const TeamRoster = () => {
             <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
               {wrestler.wrestler_name}
             </Link>{" "}
-            ({wrestler.points} pts)
-            {" — "}
-            {userTeam === teamName.toLowerCase() ? (
-              <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>
-            ) : (
+            ({wrestler.points} pts) – <strong>{wrestler.starter ? "Starter" : "Bench"}</strong>
+            {userTeam === teamName.toLowerCase() && (
+              <>
+                <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>
+                <button onClick={() => handleToggleStarter(wrestler.wrestler_name, !wrestler.starter)}>
+                  Set {wrestler.starter ? "Bench" : "Starter"}
+                </button>
+              </>
+            )}
+            {userTeam !== teamName.toLowerCase() && (
               <Link
                 to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
                 className="propose-trade-btn"
