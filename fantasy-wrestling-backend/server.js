@@ -361,6 +361,30 @@ app.get("/api/eventSummary", async (req, res) => {
   }
 });
 
+// Get event point history for a specific wrestler
+app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
+  const { name } = req.params;
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ep.event_name,
+        ep.event_date,
+        ep.points,
+        ep.description,
+        t.team_name
+      FROM event_points ep
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      LEFT JOIN teams t ON ep.team_id = t.id
+      WHERE LOWER(w.wrestler_name) = LOWER($1)
+      ORDER BY ep.event_date DESC;
+    `, [name]);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching event history for wrestler:", err);
+    res.status(500).json({ error: "Failed to fetch event history." });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
