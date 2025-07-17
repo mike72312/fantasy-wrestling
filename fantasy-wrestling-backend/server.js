@@ -288,7 +288,7 @@ app.post("/api/importEvent", async (req, res) => {
     const eventDetails = [];
 
     // ✅ Parse Matches section
-    $("h2:contains('Matches')").nextUntil("h2").find("div").each((_, el) => {
+    $("h2:contains('Matches')").nextAll("ul.list-group").first().find("li").each((_, el) => {
       let fullText = $(el).text()
         .replace(/\u00A0/g, " ")
         .replace(/\s+/g, " ")
@@ -298,7 +298,6 @@ app.post("/api/importEvent", async (req, res) => {
       const pointsMatch = fullText.match(/—\s*(\d+)\s*pts/i);
       const points = pointsMatch ? parseInt(pointsMatch[1]) : null;
 
-      // Handle win/loss/draw
       const winMatch = fullText.match(/^(.+?) defeated (.+?) via/i);
       const drawMatch = fullText.match(/^(.+?) fought (.+?) to a draw/i);
 
@@ -311,43 +310,11 @@ app.post("/api/importEvent", async (req, res) => {
         eventDetails.push({ name: name1, points, description: "Draw" });
         eventDetails.push({ name: name2, points, description: "Draw" });
       }
-
-      // Check for other keywords
-      const pinfall = /pinfall/i.test(fullText);
-      const submission = /submission/i.test(fullText);
-      const eliminated = fullText.match(/(.+?) eliminated (.+?)(?: — (\d+) pts)?/i);
-      const signatureMoves = (fullText.match(/signature move/gi) || []).length;
-      const special = /confronts|returns|cash-in|turns|debuts/i.test(fullText);
-
-      if (eliminated && points !== null) {
-        const name = eliminated[1].trim();
-        eventDetails.push({ name, points, description: "Elimination" });
-      }
-
-      if (pinfall && points !== null) {
-        const name = fullText.split(" ")[0].trim();
-        eventDetails.push({ name, points, description: "Pinfall" });
-      }
-
-      if (submission && points !== null) {
-        const name = fullText.split(" ")[0].trim();
-        eventDetails.push({ name, points, description: "Submission" });
-      }
-
-      if (signatureMoves > 0 && points !== null) {
-        const name = fullText.split(" ")[0].trim();
-        eventDetails.push({ name, points, description: `${signatureMoves} Signature Moves` });
-      }
-
-      if (special && points !== null) {
-        const name = fullText.split(" ")[0].trim();
-        eventDetails.push({ name, points, description: "Special Appearance" });
-      }
     });
 
-    // ✅ Parse Bonus Points section
-    $("h2:contains('Bonus Points') + ol > li").each((_, el) => {
-      const text = $(el).text().trim();
+    // ✅ Parse Bonus Points
+    $("h2:contains('Bonus Points')").next("ol").find("li").each((_, el) => {
+      const text = $(el).text().replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim();
       const nameMatch = text.match(/^(.+?) — (\d+) pts/i);
       const linkText = $(el).find("a[href^='/OtherPoint']").text().trim();
       const desc = linkText || text.split("—")[1]?.trim() || "Bonus";
@@ -364,6 +331,7 @@ app.post("/api/importEvent", async (req, res) => {
     }
 
     const summary = [];
+
     for (const detail of eventDetails) {
       const { name, points, description } = detail;
 
@@ -395,6 +363,81 @@ app.post("/api/importEvent", async (req, res) => {
     console.error("❌ Error processing event:", err);
     res.status(500).json({ error: "Error processing event" });
   }
+});
+
+// Standings and summaries
+app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
+  const { name } = req.params;
+  try {
+    const wrestlerRes = await pool.query(
+      "SELECT id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+      [name.toLowerCase()]
+    );
+    if (wrestlerRes.rows.length === 0) return res.status(404).json({ error: "Wrestler not found" });
+
+    const result = await pool.query(
+      `SELECT ep.event_name, ep.event_date, ep.points, t.team_name, ep.description
+       FROM event_points ep
+       JOIN wrestlers w ON ep.wrestler_id = w.id
+       LEFT JOIN teams t ON ep.team_id = t.id
+       WHERE LOWER(w.wrestler_name) = LOWER($1)
+       ORDER BY ep.event_date DESC`,
+      [name]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching event points:", err);
+    res.status(500).json({ error: "Error fetching event points" });
+  }
+});
+
+app.get("/api/eventPoints/team/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+  try {
+    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName.toLowerCase()]);
+    if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
+
+    const teamId = teamRes.rows[0].id;
+    const result = await pool.query(`
+      SELECT ep.event_name, ep.event_date, ep.points, w.wrestler_name
+      FROM event_points ep
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      WHERE ep.team_id = $1
+      ORDER BY ep.event_date DESC
+    `, [teamId]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching team event points:", err);
+    res.status(500).json({ error: "Error fetching team event points" });
+  }
+});
+
+app.get("/api/eventSummary", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ep.event_name,
+        ep.event_date,
+        w.wrestler_name,
+        t.team_name,
+        ep.points,
+        ep.description
+      FROM event_points ep
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      LEFT JOIN teams t ON ep.team_id = t.id
+      ORDER BY ep.event_date DESC, ep.event_name, ep.points DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching detailed event summary:", err);
+    res.status(500).json({ error: "Failed to fetch event summary" });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
 
 // Start the server
