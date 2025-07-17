@@ -10,7 +10,7 @@ const WrestlerProfile = () => {
   const [sortOrder, setSortOrder] = useState("desc");
 
   useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${werestler_name}`)
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/wrestler/${wrestler_name}`)
       .then(res => res.json())
       .then(setWrestler);
 
