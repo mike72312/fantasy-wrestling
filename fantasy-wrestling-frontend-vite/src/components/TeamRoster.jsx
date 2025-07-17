@@ -83,32 +83,50 @@ const TeamRoster = () => {
         </select>
       </div>
 
-      <ul className="wrestler-list">
-        {sortedRoster.map((wrestler, i) => (
-          <li key={i}>
-            <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
-              {wrestler.wrestler_name}
-            </Link>{" "}
-            ({wrestler.points} pts) – <strong>{wrestler.starter ? "Starter" : "Bench"}</strong>
-            {userTeam === teamName.toLowerCase() && (
-              <>
-                <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>
-                <button onClick={() => handleToggleStarter(wrestler.wrestler_name, !wrestler.starter)}>
-                  Set {wrestler.starter ? "Bench" : "Starter"}
-                </button>
-              </>
-            )}
-            {userTeam !== teamName.toLowerCase() && (
-              <Link
-                to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
-                className="propose-trade-btn"
-              >
-                Propose Trade
-              </Link>
-            )}
-          </li>
-        ))}
-      </ul>
+      {sortedRoster.length === 0 ? (
+        <p>Roster is empty.</p>
+      ) : (
+        <table className="roster-table" border="1" cellPadding="8">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Points</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedRoster.map((wrestler, i) => (
+              <tr key={i}>
+                <td>
+                  <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
+                    {wrestler.wrestler_name}
+                  </Link>
+                </td>
+                <td>{wrestler.points}</td>
+                <td><strong>{wrestler.starter ? "Starter" : "Bench"}</strong></td>
+                <td>
+                  {userTeam === teamName.toLowerCase() ? (
+                    <>
+                      <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>{" "}
+                      <button onClick={() => handleToggleStarter(wrestler.wrestler_name, !wrestler.starter)}>
+                        Set {wrestler.starter ? "Bench" : "Starter"}
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
+                      className="propose-trade-btn"
+                    >
+                      Propose Trade
+                    </Link>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };
