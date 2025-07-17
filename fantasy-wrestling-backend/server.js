@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 10000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // import file size
+app.use(express.json());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -287,51 +287,74 @@ app.post("/api/importEvent", async (req, res) => {
     const $ = cheerio.load(eventHtml);
     const eventDetails = [];
 
-    // ✅ Parse Matches section
-    $("h2:contains('Matches')").nextAll("ul.list-group").first().find("li").each((_, el) => {
-      let fullText = $(el).text()
-        .replace(/\u00A0/g, " ")
-        .replace(/\s+/g, " ")
-        .replace(/[^\x00-\x7F]/g, "")
-        .trim();
+    // ✅ Parse match results and extract descriptions
+    $(".matchlist .result").each((_, el) => {
+      const text = $(el).text().trim();
+      const strongText = $(el).find("strong").first().text().trim();
 
-      const pointsMatch = fullText.match(/—\s*(\d+)\s*pts/i);
-      const points = pointsMatch ? parseInt(pointsMatch[1]) : null;
+      const winMatch = text.match(/^(.+?) defeated (.+?) via/);
+      const drawMatch = text.match(/^(.+?) fought (.+?) to a draw/i);
+      const titleMatch = /title/i.test(text);
+      const eliminations = (text.match(/eliminated/gi) || []).length;
+      const pinfall = /pinfall/i.test(text);
+      const submission = /submission/i.test(text);
+      const signatureMoves = (text.match(/signature move/gi) || []).length;
+      const special = /confronts|returns|cash-in|turns|debuts/i.test(text);
 
-      const winMatch = fullText.match(/^(.+?) defeated (.+?) via/i);
-      const drawMatch = fullText.match(/^(.+?) fought (.+?) to a draw/i);
-
-      if (winMatch && points !== null) {
+      if (winMatch) {
         const winner = winMatch[1].trim();
-        eventDetails.push({ name: winner, points, description: "Win" });
-      } else if (drawMatch && points !== null) {
+        const loser = winMatch[2].trim();
+        const desc = strongText || "Win";
+        eventDetails.push({ name: winner, points: 5, description: desc });
+        if (titleMatch) eventDetails.push({ name: winner, points: 7, description: "Title Match Win" });
+        eventDetails.push({ name: loser, points: -2, description: "Loss" });
+      } else if (drawMatch) {
         const name1 = drawMatch[1].trim();
         const name2 = drawMatch[2].trim();
-        eventDetails.push({ name: name1, points, description: "Draw" });
-        eventDetails.push({ name: name2, points, description: "Draw" });
+        eventDetails.push({ name: name1, points: 2, description: "Draw" });
+        eventDetails.push({ name: name2, points: 2, description: "Draw" });
+      }
+
+      if (eliminations) {
+        const match = text.match(/^(.+?) eliminated/);
+        if (match) {
+          const name = match[1].trim();
+          eventDetails.push({ name, points: 3 * eliminations, description: `${eliminations} Eliminations` });
+        }
+      }
+
+      if (pinfall || submission) {
+        const name = text.split(" ")[0].trim();
+        const desc = pinfall ? "Pinfall" : "Submission";
+        eventDetails.push({ name, points: 3, description: desc });
+      }
+
+      if (signatureMoves) {
+        const name = text.split(" ")[0].trim();
+        eventDetails.push({ name, points: 2 * signatureMoves, description: `${signatureMoves} Signature Moves` });
+      }
+
+      if (special) {
+        const name = text.split(" ")[0].trim();
+        eventDetails.push({ name, points: 5, description: "Special Appearance" });
       }
     });
 
-    // ✅ Parse Bonus Points
-    $("h2:contains('Bonus Points')").next("ol").find("li").each((_, el) => {
-      const text = $(el).text().replace(/\u00A0/g, " ").replace(/\s+/g, " ").trim();
+    // ✅ Bonus Points
+    $("h2:contains('Bonus Points') + ol > li").each((_, el) => {
+      const text = $(el).text().trim();
       const nameMatch = text.match(/^(.+?) — (\d+) pts/i);
       const linkText = $(el).find("a[href^='/OtherPoint']").text().trim();
-      const desc = linkText || text.split("—")[1]?.trim() || "Bonus";
 
       if (nameMatch) {
         const name = nameMatch[1].trim();
         const points = parseInt(nameMatch[2]);
+        const desc = linkText || "Bonus";
         eventDetails.push({ name, points, description: desc });
       }
     });
 
-    if (eventDetails.length === 0) {
-      return res.status(400).json({ error: "No valid matches or bonus points found." });
-    }
-
     const summary = [];
-
     for (const detail of eventDetails) {
       const { name, points, description } = detail;
 
@@ -365,7 +388,6 @@ app.post("/api/importEvent", async (req, res) => {
   }
 });
 
-// Standings and summaries
 app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
   const { name } = req.params;
   try {
@@ -375,15 +397,15 @@ app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
     );
     if (wrestlerRes.rows.length === 0) return res.status(404).json({ error: "Wrestler not found" });
 
-    const result = await pool.query(
-      `SELECT ep.event_name, ep.event_date, ep.points, t.team_name, ep.description
-       FROM event_points ep
-       JOIN wrestlers w ON ep.wrestler_id = w.id
-       LEFT JOIN teams t ON ep.team_id = t.id
-       WHERE LOWER(w.wrestler_name) = LOWER($1)
-       ORDER BY ep.event_date DESC`,
-      [name]
-    );
+    const wrestlerId = wrestlerRes.rows[0].id;
+const result = await pool.query(
+  `SELECT event_name, event_date, points, team_name, description
+   FROM event_points
+   WHERE wrestler_name = $1
+   ORDER BY event_date DESC`,
+  [req.params.name]
+);
+
 
     res.json(result.rows);
   } catch (err) {
@@ -414,6 +436,7 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
   }
 });
 
+// Get detailed event summary: wrestler points by event
 app.get("/api/eventSummary", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -421,23 +444,17 @@ app.get("/api/eventSummary", async (req, res) => {
         ep.event_name,
         ep.event_date,
         w.wrestler_name,
-        t.team_name,
         ep.points,
         ep.description
       FROM event_points ep
       JOIN wrestlers w ON ep.wrestler_id = w.id
-      LEFT JOIN teams t ON ep.team_id = t.id
-      ORDER BY ep.event_date DESC, ep.event_name, ep.points DESC;
+      ORDER BY ep.event_date DESC, w.wrestler_name ASC;
     `);
     res.json(result.rows);
   } catch (err) {
-    console.error("❌ Error fetching detailed event summary:", err);
+    console.error("Error fetching event summary:", err);
     res.status(500).json({ error: "Failed to fetch event summary" });
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
 });
 
 // Start the server
