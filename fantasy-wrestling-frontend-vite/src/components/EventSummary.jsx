@@ -1,6 +1,5 @@
-// src/components/EventSummary.jsx
+// src/components/EventSummary.jsx// src/components/EventSummary.jsx
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 
 const EventSummary = () => {
   const [events, setEvents] = useState([]);
@@ -13,16 +12,19 @@ const EventSummary = () => {
   useEffect(() => {
     console.log("📡 Fetching event summary...");
     fetch("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
-      .then((res) => res.json())
-      .then((data) => {
-  if (Array.isArray(data)) {
-    setEvents(data);
-  } else {
-    console.error("❌ Invalid response from server:", data);
-    setEvents([]);
-  }
-})
-      .catch((err) => console.error("❌ Error loading event summary:", err));
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setEvents(data);
+        } else {
+          console.error("❌ Invalid response from server:", data);
+          setEvents([]);
+        }
+      })
+      .catch(err => {
+        console.error("❌ Error loading event summary:", err);
+        setEvents([]);
+      });
   }, []);
 
   const handleSort = (key) => {
@@ -76,7 +78,7 @@ const EventSummary = () => {
         />
       </div>
 
-      <table className="styled-table">
+      <table className="styled-table" style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
             <th onClick={() => handleSort("event_date")}>Date</th>
