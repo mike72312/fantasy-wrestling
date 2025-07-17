@@ -72,27 +72,46 @@ const EventSummary = () => {
       <table className="styled-table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Event</th>
-            <th>Wrestler</th>
-            <th>Team</th>
-            <th>Points</th>
-            <th>Description</th>
+            <th onClick={() => handleSort("event_date")}>Date</th>
+            <th onClick={() => handleSort("event_name")}>Event</th>
+            <th onClick={() => handleSort("wrestler_name")}>Wrestler</th>
+            <th onClick={() => handleSort("team_name")}>Team</th>
+            <th onClick={() => handleSort("points")}>Points</th>
+            <th onClick={() => handleSort("description")}>Description</th>
           </tr>
         </thead>
         <tbody>
-          {filteredEvents.map((entry, idx) => (
+          {paginated.map((entry, idx) => (
             <tr key={idx}>
               <td>{new Date(entry.event_date).toLocaleDateString()}</td>
               <td>{entry.event_name}</td>
               <td>{entry.wrestler_name}</td>
               <td>{entry.team_name ?? "Free Agent"}</td>
               <td>{entry.points}</td>
-              <td>{entry.description}</td>
+              <td>{entry.description || "—"}</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {totalPages > 1 && (
+        <div style={{ marginTop: "1rem" }}>
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i + 1)}
+              style={{
+                margin: "0 0.25rem",
+                padding: "0.5rem",
+                backgroundColor: currentPage === i + 1 ? "#333" : "#eee",
+                color: currentPage === i + 1 ? "#fff" : "#000"
+              }}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
