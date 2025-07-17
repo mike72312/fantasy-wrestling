@@ -287,91 +287,65 @@ app.post("/api/importEvent", async (req, res) => {
     const $ = cheerio.load(eventHtml);
     const eventDetails = [];
 
-    $(".result").each((_, el) => {
-      let fullText = $(el).text();
-      fullText = fullText
-        .replace(/\u00A0/g, " ")         // replace non-breaking spaces
-        .replace(/\s+/g, " ")            // collapse all whitespace
-        .replace(/[^\x00-\x7F]/g, "")    // remove non-ASCII (optional)
+    // ✅ Parse Matches section
+    $("h2:contains('Matches')").nextUntil("h2").find("div").each((_, el) => {
+      let fullText = $(el).text()
+        .replace(/\u00A0/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/[^\x00-\x7F]/g, "")
         .trim();
 
-      console.log("🔍 Normalized line:", fullText);
+      const pointsMatch = fullText.match(/—\s*(\d+)\s*pts/i);
+      const points = pointsMatch ? parseInt(pointsMatch[1]) : null;
 
-      const winnerLoserMatch = fullText.match(/^(.+?) defeated (.+?) via/i);
+      // Handle win/loss/draw
+      const winMatch = fullText.match(/^(.+?) defeated (.+?) via/i);
       const drawMatch = fullText.match(/^(.+?) fought (.+?) to a draw/i);
-      const titleMatch = /title/i.test(fullText);
-      const eliminations = (fullText.match(/eliminated/gi) || []).length;
+
+      if (winMatch && points !== null) {
+        const winner = winMatch[1].trim();
+        eventDetails.push({ name: winner, points, description: "Win" });
+      } else if (drawMatch && points !== null) {
+        const name1 = drawMatch[1].trim();
+        const name2 = drawMatch[2].trim();
+        eventDetails.push({ name: name1, points, description: "Draw" });
+        eventDetails.push({ name: name2, points, description: "Draw" });
+      }
+
+      // Check for other keywords
       const pinfall = /pinfall/i.test(fullText);
       const submission = /submission/i.test(fullText);
+      const eliminated = fullText.match(/(.+?) eliminated (.+?)(?: — (\d+) pts)?/i);
       const signatureMoves = (fullText.match(/signature move/gi) || []).length;
       const special = /confronts|returns|cash-in|turns|debuts/i.test(fullText);
 
-      if (winnerLoserMatch) {
-        const winner = winnerLoserMatch[1].trim();
-        const loser = winnerLoserMatch[2].trim();
-
-        eventDetails.push({ name: winner, points: 5, description: "Win" });
-        if (titleMatch) {
-          eventDetails.push({ name: winner, points: 7, description: "Title Match Win" });
-        }
-        eventDetails.push({ name: loser, points: -2, description: "Loss" });
-      } else if (drawMatch) {
-        const name1 = drawMatch[1].trim();
-        const name2 = drawMatch[2].trim();
-        eventDetails.push({ name: name1, points: 2, description: "Draw" });
-        eventDetails.push({ name: name2, points: 2, description: "Draw" });
+      if (eliminated && points !== null) {
+        const name = eliminated[1].trim();
+        eventDetails.push({ name, points, description: "Elimination" });
       }
 
-      if (eliminations) {
-        const match = fullText.match(/^(.+?) eliminated/i);
-        if (match) {
-          const name = match[1].trim();
-          eventDetails.push({
-            name,
-            points: 3 * eliminations,
-            description: `${eliminations} Eliminations`
-          });
-        }
-      }
-
-      if (pinfall) {
+      if (pinfall && points !== null) {
         const name = fullText.split(" ")[0].trim();
-        eventDetails.push({
-          name,
-          points: 3,
-          description: "Pinfall"
-        });
+        eventDetails.push({ name, points, description: "Pinfall" });
       }
 
-      if (submission) {
+      if (submission && points !== null) {
         const name = fullText.split(" ")[0].trim();
-        eventDetails.push({
-          name,
-          points: 3,
-          description: "Submission"
-        });
+        eventDetails.push({ name, points, description: "Submission" });
       }
 
-      if (signatureMoves > 0) {
+      if (signatureMoves > 0 && points !== null) {
         const name = fullText.split(" ")[0].trim();
-        eventDetails.push({
-          name,
-          points: 2 * signatureMoves,
-          description: `${signatureMoves} Signature Moves`
-        });
+        eventDetails.push({ name, points, description: `${signatureMoves} Signature Moves` });
       }
 
-      if (special) {
+      if (special && points !== null) {
         const name = fullText.split(" ")[0].trim();
-        eventDetails.push({
-          name,
-          points: 5,
-          description: "Special Appearance"
-        });
+        eventDetails.push({ name, points, description: "Special Appearance" });
       }
     });
 
-    // ✅ Bonus Points
+    // ✅ Parse Bonus Points section
     $("h2:contains('Bonus Points') + ol > li").each((_, el) => {
       const text = $(el).text().trim();
       const nameMatch = text.match(/^(.+?) — (\d+) pts/i);
@@ -385,10 +359,7 @@ app.post("/api/importEvent", async (req, res) => {
       }
     });
 
-    console.log("🧠 Extracted event details:", eventDetails);
-
     if (eventDetails.length === 0) {
-      console.warn("⚠️ No valid matches or bonus points found.");
       return res.status(400).json({ error: "No valid matches or bonus points found." });
     }
 
