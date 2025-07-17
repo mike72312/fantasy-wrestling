@@ -14,7 +14,14 @@ const EventSummary = () => {
     console.log("📡 Fetching event summary...");
     fetch("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
       .then((res) => res.json())
-      .then(setEvents)
+      .then((data) => {
+  if (Array.isArray(data)) {
+    setEvents(data);
+  } else {
+    console.error("❌ Invalid response from server:", data);
+    setEvents([]);
+  }
+})
       .catch((err) => console.error("❌ Error loading event summary:", err));
   }, []);
 
