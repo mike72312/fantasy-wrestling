@@ -288,7 +288,15 @@ app.post("/api/importEvent", async (req, res) => {
     const eventDetails = [];
 
     $(".result").each((_, el) => {
-      const fullText = $(el).text().trim();
+      let fullText = $(el).text();
+      fullText = fullText
+        .replace(/\u00A0/g, " ")         // replace non-breaking spaces
+        .replace(/\s+/g, " ")            // collapse all whitespace
+        .replace(/[^\x00-\x7F]/g, "")    // remove non-ASCII (optional)
+        .trim();
+
+      console.log("🔍 Normalized line:", fullText);
+
       const winnerLoserMatch = fullText.match(/^(.+?) defeated (.+?) via/i);
       const drawMatch = fullText.match(/^(.+?) fought (.+?) to a draw/i);
       const titleMatch = /title/i.test(fullText);
@@ -377,7 +385,6 @@ app.post("/api/importEvent", async (req, res) => {
       }
     });
 
-    // ✅ Log what we extracted from the HTML
     console.log("🧠 Extracted event details:", eventDetails);
 
     if (eventDetails.length === 0) {
@@ -386,7 +393,6 @@ app.post("/api/importEvent", async (req, res) => {
     }
 
     const summary = [];
-
     for (const detail of eventDetails) {
       const { name, points, description } = detail;
 
@@ -394,11 +400,7 @@ app.post("/api/importEvent", async (req, res) => {
         "SELECT id, team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
         [name.toLowerCase()]
       );
-
-      if (wrestlerRes.rows.length === 0) {
-        console.warn(`⚠️ Wrestler not found in DB: ${name}`);
-        continue;
-      }
+      if (wrestlerRes.rows.length === 0) continue;
 
       const { id: wrestlerId, team_id } = wrestlerRes.rows[0];
 
@@ -411,10 +413,7 @@ app.post("/api/importEvent", async (req, res) => {
       );
 
       summary.push({ wrestler: name, points, description });
-      console.log(`→ Added ${points} to ${name} (${description})`);
     }
-
-    console.log("✅ Successfully updated DB:", summary);
 
     res.json({
       message: "✅ Event imported and points updated",
