@@ -1,4 +1,4 @@
-// src/components/EventSummary.jsx// src/components/EventSummary.jsx
+// src/components/EventSummary.jsx
 import React, { useEffect, useState } from "react";
 
 const EventSummary = () => {
@@ -10,16 +10,11 @@ const EventSummary = () => {
   const itemsPerPage = 50;
 
   useEffect(() => {
-    console.log("📡 Fetching event summary...");
     fetch("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setEvents(data);
-        } else {
-          console.error("❌ Invalid response from server:", data);
-          setEvents([]);
-        }
+        if (Array.isArray(data)) setEvents(data);
+        else setEvents([]);
       })
       .catch(err => {
         console.error("❌ Error loading event summary:", err);
@@ -33,6 +28,11 @@ const EventSummary = () => {
       direction = "desc";
     }
     setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key) => {
+    if (sortConfig.key !== key) return "⇅";
+    return sortConfig.direction === "asc" ? "▲" : "▼";
   };
 
   const filtered = events.filter(e =>
@@ -60,7 +60,7 @@ const EventSummary = () => {
           type="text"
           placeholder="Search Wrestler"
           value={searchWrestler}
-          onChange={e => {
+          onChange={(e) => {
             setSearchWrestler(e.target.value);
             setCurrentPage(1);
           }}
@@ -70,7 +70,7 @@ const EventSummary = () => {
           type="text"
           placeholder="Search Event"
           value={searchEvent}
-          onChange={e => {
+          onChange={(e) => {
             setSearchEvent(e.target.value);
             setCurrentPage(1);
           }}
@@ -81,12 +81,24 @@ const EventSummary = () => {
       <table className="styled-table" style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th onClick={() => handleSort("event_date")}>Date</th>
-            <th onClick={() => handleSort("event_name")}>Event</th>
-            <th onClick={() => handleSort("wrestler_name")}>Wrestler</th>
-            <th onClick={() => handleSort("team_name")}>Team</th>
-            <th onClick={() => handleSort("points")}>Points</th>
-            <th onClick={() => handleSort("description")}>Description</th>
+            <th onClick={() => handleSort("event_date")} style={{ cursor: "pointer" }}>
+              Date {getSortIndicator("event_date")}
+            </th>
+            <th onClick={() => handleSort("event_name")} style={{ cursor: "pointer" }}>
+              Event {getSortIndicator("event_name")}
+            </th>
+            <th onClick={() => handleSort("wrestler_name")} style={{ cursor: "pointer" }}>
+              Wrestler {getSortIndicator("wrestler_name")}
+            </th>
+            <th onClick={() => handleSort("team_name")} style={{ cursor: "pointer" }}>
+              Team {getSortIndicator("team_name")}
+            </th>
+            <th onClick={() => handleSort("points")} style={{ cursor: "pointer" }}>
+              Points {getSortIndicator("points")}
+            </th>
+            <th onClick={() => handleSort("description")} style={{ cursor: "pointer" }}>
+              Description {getSortIndicator("description")}
+            </th>
           </tr>
         </thead>
         <tbody>
