@@ -256,103 +256,54 @@ app.get("/api/standings", async (req, res) => {
   }
 });
 
-// Import event results and update points
+// Import event results and update points from raw text
 app.post("/api/importEvent", async (req, res) => {
-  const { html, url, event_name, event_date } = req.body;
+  const { rawText, event_name, event_date } = req.body;
 
-  if (!event_name || !event_date) {
-    return res.status(400).json({ error: "Missing event name or date" });
-  }
-
-  let eventHtml = html;
-
-  if (url) {
-    try {
-      const response = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0" }
-      });
-      if (!response.ok) throw new Error("Failed to fetch URL");
-      eventHtml = await response.text();
-    } catch (err) {
-      console.error("❌ Error fetching URL:", err);
-      return res.status(500).json({ error: "Failed to fetch event HTML from URL" });
-    }
-  }
-
-  if (!eventHtml) {
-    return res.status(400).json({ error: "No HTML provided or fetched" });
+  if (!rawText || !event_name || !event_date) {
+    return res.status(400).json({ error: "Missing event name, date, or raw text" });
   }
 
   try {
-    const $ = cheerio.load(eventHtml);
+    const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+    let mode = null;
     const eventDetails = [];
 
-    // ✅ Parse match results and extract descriptions
-    $(".matchlist .result").each((_, el) => {
-      const text = $(el).text().trim();
-      const strongText = $(el).find("strong").first().text().trim();
+    for (const line of lines) {
+      const normalized = line.replace(/\s+/g, " ").trim();
 
-      const winMatch = text.match(/^(.+?) defeated (.+?) via/);
-      const drawMatch = text.match(/^(.+?) fought (.+?) to a draw/i);
-      const titleMatch = /title/i.test(text);
-      const eliminations = (text.match(/eliminated/gi) || []).length;
-      const pinfall = /pinfall/i.test(text);
-      const submission = /submission/i.test(text);
-      const signatureMoves = (text.match(/signature move/gi) || []).length;
-      const special = /confronts|returns|cash-in|turns|debuts/i.test(text);
-
-      if (winMatch) {
-        const winner = winMatch[1].trim();
-        const loser = winMatch[2].trim();
-        const desc = strongText || "Win";
-        eventDetails.push({ name: winner, points: 5, description: desc });
-        if (titleMatch) eventDetails.push({ name: winner, points: 7, description: "Title Match Win" });
-        eventDetails.push({ name: loser, points: -2, description: "Loss" });
-      } else if (drawMatch) {
-        const name1 = drawMatch[1].trim();
-        const name2 = drawMatch[2].trim();
-        eventDetails.push({ name: name1, points: 2, description: "Draw" });
-        eventDetails.push({ name: name2, points: 2, description: "Draw" });
+      if (/^matches$/i.test(normalized)) {
+        mode = "matches";
+        continue;
+      } else if (/^bonus points$/i.test(normalized)) {
+        mode = "bonus";
+        continue;
       }
 
-      if (eliminations) {
-        const match = text.match(/^(.+?) eliminated/);
+      if (mode === "matches") {
+        const matchRegex = /^(.+?) (\d+) pts/i;
+        const match = normalized.match(matchRegex);
         if (match) {
           const name = match[1].trim();
-          eventDetails.push({ name, points: 3 * eliminations, description: `${eliminations} Eliminations` });
+          const points = parseInt(match[2]);
+          const description = normalized.split("pts")[1].trim();
+          eventDetails.push({ name, points, description });
+        }
+      } else if (mode === "bonus") {
+        const bonusRegex = /^(.+?) — (\d+) pts — (.+)$/i;
+        const match = normalized.match(bonusRegex);
+        if (match) {
+          const name = match[1].trim();
+          const points = parseInt(match[2]);
+          const description = match[3].trim();
+          eventDetails.push({ name, points, description });
         }
       }
+    }
 
-      if (pinfall || submission) {
-        const name = text.split(" ")[0].trim();
-        const desc = pinfall ? "Pinfall" : "Submission";
-        eventDetails.push({ name, points: 3, description: desc });
-      }
-
-      if (signatureMoves) {
-        const name = text.split(" ")[0].trim();
-        eventDetails.push({ name, points: 2 * signatureMoves, description: `${signatureMoves} Signature Moves` });
-      }
-
-      if (special) {
-        const name = text.split(" ")[0].trim();
-        eventDetails.push({ name, points: 5, description: "Special Appearance" });
-      }
-    });
-
-    // ✅ Bonus Points
-    $("h2:contains('Bonus Points') + ol > li").each((_, el) => {
-      const text = $(el).text().trim();
-      const nameMatch = text.match(/^(.+?) — (\d+) pts/i);
-      const linkText = $(el).find("a[href^='/OtherPoint']").text().trim();
-
-      if (nameMatch) {
-        const name = nameMatch[1].trim();
-        const points = parseInt(nameMatch[2]);
-        const desc = linkText || "Bonus";
-        eventDetails.push({ name, points, description: desc });
-      }
-    });
+    if (eventDetails.length === 0) {
+      return res.status(400).json({ error: "No valid matches or bonus points found." });
+    }
 
     const summary = [];
     for (const detail of eventDetails) {
@@ -385,75 +336,6 @@ app.post("/api/importEvent", async (req, res) => {
   } catch (err) {
     console.error("❌ Error processing event:", err);
     res.status(500).json({ error: "Error processing event" });
-  }
-});
-
-app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
-  const { name } = req.params;
-  try {
-    const wrestlerRes = await pool.query(
-      "SELECT id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
-      [name.toLowerCase()]
-    );
-    if (wrestlerRes.rows.length === 0) return res.status(404).json({ error: "Wrestler not found" });
-
-    const wrestlerId = wrestlerRes.rows[0].id;
-const result = await pool.query(
-  `SELECT event_name, event_date, points, team_name, description
-   FROM event_points
-   WHERE wrestler_name = $1
-   ORDER BY event_date DESC`,
-  [req.params.name]
-);
-
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching event points:", err);
-    res.status(500).json({ error: "Error fetching event points" });
-  }
-});
-
-app.get("/api/eventPoints/team/:teamName", async (req, res) => {
-  const { teamName } = req.params;
-  try {
-    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName.toLowerCase()]);
-    if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
-
-    const teamId = teamRes.rows[0].id;
-    const result = await pool.query(`
-      SELECT ep.event_name, ep.event_date, ep.points, w.wrestler_name
-      FROM event_points ep
-      JOIN wrestlers w ON ep.wrestler_id = w.id
-      WHERE ep.team_id = $1
-      ORDER BY ep.event_date DESC
-    `, [teamId]);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching team event points:", err);
-    res.status(500).json({ error: "Error fetching team event points" });
-  }
-});
-
-// Get detailed event summary: wrestler points by event
-app.get("/api/eventSummary", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        ep.event_name,
-        ep.event_date,
-        w.wrestler_name,
-        ep.points,
-        ep.description
-      FROM event_points ep
-      JOIN wrestlers w ON ep.wrestler_id = w.id
-      ORDER BY ep.event_date DESC, w.wrestler_name ASC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching event summary:", err);
-    res.status(500).json({ error: "Failed to fetch event summary" });
   }
 });
 
