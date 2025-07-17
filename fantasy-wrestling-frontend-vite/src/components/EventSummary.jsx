@@ -1,37 +1,23 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import "./EventSummary.css"; // Optional: use for custom styling
 
 const EventSummary = () => {
-  const [events, setEvents] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [filters, setFilters] = useState({ event: "", wrestler: "", description: "" });
+  const [data, setData] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: "event_date", direction: "desc" });
 
-  useEffect(() => {
-    axios
-      .get("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
-      .then((res) => {
-        setEvents(res.data);
-        setFiltered(res.data);
-      })
-      .catch((err) => {
-        console.error("❌ Error loading event summary:", err);
-      });
-  }, []);
+  const [eventFilter, setEventFilter] = useState("");
+  const [wrestlerFilter, setWrestlerFilter] = useState("");
+  const [descriptionFilter, setDescriptionFilter] = useState("");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
   useEffect(() => {
-    let filteredData = [...events];
-    if (filters.event) {
-      filteredData = filteredData.filter(e => e.event_name === filters.event);
-    }
-    if (filters.wrestler) {
-      filteredData = filteredData.filter(e => e.wrestler_name === filters.wrestler);
-    }
-    if (filters.description) {
-      filteredData = filteredData.filter(e => e.description === filters.description);
-    }
-    setFiltered(filteredData);
-  }, [filters, events]);
+    axios.get("https://fantasy-wrestling-backend.onrender.com/api/eventSummary")
+      .then(res => setData(res.data))
+      .catch(err => console.error("❌ Error loading event summary:", err));
+  }, []);
 
   const handleSort = (key) => {
     let direction = "asc";
@@ -39,72 +25,96 @@ const EventSummary = () => {
       direction = "desc";
     }
     setSortConfig({ key, direction });
-
-    const sorted = [...filtered].sort((a, b) => {
-      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-      return 0;
-    });
-    setFiltered(sorted);
   };
 
-  const unique = (key) => [...new Set(events.map(e => e[key]).filter(Boolean))];
+  const sortedData = [...data].sort((a, b) => {
+    const aVal = a[sortConfig.key];
+    const bVal = b[sortConfig.key];
+
+    if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const filteredData = sortedData.filter(row => {
+    return (
+      (!eventFilter || row.event_name === eventFilter) &&
+      (!wrestlerFilter || row.wrestler_name === wrestlerFilter) &&
+      (!descriptionFilter || row.description === descriptionFilter)
+    );
+  });
+
+  const indexOfLast = currentPage * rowsPerPage;
+  const indexOfFirst = indexOfLast - rowsPerPage;
+  const currentRows = filteredData.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+
+  const unique = (field) => [...new Set(data.map(row => row[field]))];
 
   return (
-    <div className="container mt-4">
+    <div className="container" style={{ padding: "20px" }}>
       <h2>Event Summary</h2>
 
-      {/* Filter Controls */}
-      <div className="row mb-3">
-        <div className="col-md-4">
-          <label>Filter by Event</label>
-          <select className="form-control" onChange={(e) => setFilters(f => ({ ...f, event: e.target.value }))}>
-            <option value="">All</option>
-            {unique("event_name").map((name, i) => <option key={i} value={name}>{name}</option>)}
-          </select>
-        </div>
-        <div className="col-md-4">
-          <label>Filter by Wrestler</label>
-          <select className="form-control" onChange={(e) => setFilters(f => ({ ...f, wrestler: e.target.value }))}>
-            <option value="">All</option>
-            {unique("wrestler_name").map((name, i) => <option key={i} value={name}>{name}</option>)}
-          </select>
-        </div>
-        <div className="col-md-4">
-          <label>Filter by Description</label>
-          <select className="form-control" onChange={(e) => setFilters(f => ({ ...f, description: e.target.value }))}>
-            <option value="">All</option>
-            {unique("description").map((desc, i) => <option key={i} value={desc}>{desc}</option>)}
-          </select>
-        </div>
+      {/* Filters */}
+      <div className="filters" style={{ display: "flex", gap: "10px", marginBottom: "15px" }}>
+        <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
+          <option value="">All Events</option>
+          {unique("event_name").map(event => (
+            <option key={event} value={event}>{event}</option>
+          ))}
+        </select>
+
+        <select value={wrestlerFilter} onChange={(e) => setWrestlerFilter(e.target.value)}>
+          <option value="">All Wrestlers</option>
+          {unique("wrestler_name").map(name => (
+            <option key={name} value={name}>{name}</option>
+          ))}
+        </select>
+
+        <select value={descriptionFilter} onChange={(e) => setDescriptionFilter(e.target.value)}>
+          <option value="">All Descriptions</option>
+          {unique("description").map(desc => (
+            <option key={desc} value={desc}>{desc}</option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
-      <div className="table-responsive">
-        <table className="table table-striped table-bordered">
-          <thead className="thead-dark">
+      <div className="table-wrapper" style={{ overflowX: "auto" }}>
+        <table className="event-summary-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
             <tr>
-              <th onClick={() => handleSort("event_name")} style={{ cursor: "pointer" }}>Event Name</th>
-              <th onClick={() => handleSort("event_date")} style={{ cursor: "pointer" }}>Date</th>
-              <th onClick={() => handleSort("wrestler_name")} style={{ cursor: "pointer" }}>Wrestler</th>
-              <th onClick={() => handleSort("team_name")} style={{ cursor: "pointer" }}>Team</th>
-              <th onClick={() => handleSort("points")} style={{ cursor: "pointer" }}>Points</th>
-              <th onClick={() => handleSort("description")} style={{ cursor: "pointer" }}>Description</th>
+              {["event_date", "event_name", "wrestler_name", "team_name", "points", "description"].map(col => (
+                <th
+                  key={col}
+                  onClick={() => handleSort(col)}
+                  style={{ cursor: "pointer", padding: "10px", textAlign: "left", background: "#f0f0f0", borderBottom: "2px solid #ccc" }}
+                >
+                  {col.replace("_", " ").toUpperCase()} {sortConfig.key === col ? (sortConfig.direction === "asc" ? "▲" : "▼") : ""}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {filtered.map((row, index) => (
-              <tr key={index}>
-                <td>{row.event_name}</td>
-                <td>{new Date(row.event_date).toLocaleDateString()}</td>
-                <td>{row.wrestler_name}</td>
-                <td>{row.team_name || "—"}</td>
-                <td>{row.points}</td>
-                <td>{row.description}</td>
+            {currentRows.map((row, i) => (
+              <tr key={i}>
+                <td style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>{row.event_date}</td>
+                <td style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>{row.event_name}</td>
+                <td style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>{row.wrestler_name}</td>
+                <td style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>{row.team_name}</td>
+                <td style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>{row.points}</td>
+                <td style={{ padding: "8px", borderBottom: "1px solid #ddd" }}>{row.description}</td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="pagination" style={{ marginTop: "20px", display: "flex", justifyContent: "center", gap: "10px" }}>
+        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</button>
+        <span>Page {currentPage} of {totalPages}</span>
+        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</button>
       </div>
     </div>
   );
