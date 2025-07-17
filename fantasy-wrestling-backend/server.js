@@ -16,6 +16,66 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// Shared restriction logic
+const isRestrictedTime = async () => {
+  const now = new Date();
+  const day = now.getDay();
+  const hour = now.getHours();
+
+  try {
+    const result = await pool.query(`
+      SELECT 1 FROM restricted_windows
+      WHERE day = $1 AND $2 BETWEEN start_hour AND end_hour - 1
+    `, [day, hour]);
+
+    return result.rows.length > 0;
+  } catch (err) {
+    console.error("Error checking restricted time:", err);
+    return false;
+  }
+};
+
+// League settings: restricted hours
+app.get("/api/restrictedWindows", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM restricted_windows ORDER BY day, start_hour");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching restricted windows:", err);
+    res.status(500).json({ error: "Failed to fetch restricted windows" });
+  }
+});
+
+app.post("/api/restrictedWindows", async (req, res) => {
+  const { day, start_hour, end_hour } = req.body;
+
+  if (day < 0 || day > 6 || start_hour < 0 || start_hour > 23 || end_hour <= start_hour || end_hour > 24) {
+    return res.status(400).json({ error: "Invalid day or hour range" });
+  }
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO restricted_windows (day, start_hour, end_hour) VALUES ($1, $2, $3) RETURNING *",
+      [day, start_hour, end_hour]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error("Error adding restricted window:", err);
+    res.status(500).json({ error: "Failed to add restricted window" });
+  }
+});
+
+app.delete("/api/restrictedWindows/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query("DELETE FROM restricted_windows WHERE id = $1", [id]);
+    res.json({ message: "Restricted window deleted" });
+  } catch (err) {
+    console.error("Error deleting restricted window:", err);
+    res.status(500).json({ error: "Failed to delete restricted window" });
+  }
+});
+
 // Test route
 app.get("/test", (req, res) => {
   res.json({ message: "Test route is working" });
@@ -49,7 +109,7 @@ app.get("/api/roster/:teamName", async (req, res) => {
 
     const teamId = teamRes.rows[0].id;
     const result = await pool.query(
-      "SELECT wrestler_name, points FROM wrestlers WHERE team_id = $1 ORDER BY wrestler_name",
+      "SELECT wrestler_name, points, starter FROM wrestlers WHERE team_id = $1 ORDER BY wrestler_name",
       [teamId]
     );
     res.json(result.rows);
@@ -92,6 +152,11 @@ app.post("/api/addWrestler", async (req, res) => {
 // Drop a wrestler from a team
 app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
+
+  if (await isRestrictedTime()) {
+    return res.status(403).json({ error: "Cannot drop during restricted hours." });
+  }
+
   try {
     const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
     if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
@@ -119,6 +184,26 @@ app.post("/api/dropWrestler", async (req, res) => {
   }
 });
 
+// Set starter/bench status
+app.post("/api/setStarterStatus", async (req, res) => {
+  const { wrestlerName, isStarter } = req.body;
+
+  if (await isRestrictedTime()) {
+    return res.status(403).json({ error: "Cannot change starter status during restricted hours." });
+  }
+
+  try {
+    await pool.query(
+      "UPDATE wrestlers SET starter = $1 WHERE LOWER(wrestler_name) = LOWER($2)",
+      [isStarter, wrestlerName.toLowerCase()]
+    );
+    res.json({ message: `Wrestler ${wrestlerName} set to ${isStarter ? "starter" : "bench"}` });
+  } catch (err) {
+    console.error("Error updating starter status:", err);
+    res.status(500).json({ error: "Failed to update starter status." });
+  }
+});
+
 // Get a specific wrestler by name
 app.get("/api/wrestler/:name", async (req, res) => {
   const { name } = req.params;
@@ -137,14 +222,14 @@ app.get("/api/wrestler/:name", async (req, res) => {
   }
 });
 
-// Get team points
+// Get team points (only count starters)
 app.get("/api/teamPoints/:teamName", async (req, res) => {
   const { teamName } = req.params;
   try {
     const result = await pool.query(`
       SELECT SUM(points) AS total_points
       FROM wrestlers
-      WHERE team_id = (SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1))
+      WHERE team_id = (SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)) AND starter = true
     `, [teamName]);
     res.json({ team: teamName, points: result.rows[0].total_points || 0 });
   } catch (err) {
@@ -153,11 +238,15 @@ app.get("/api/teamPoints/:teamName", async (req, res) => {
   }
 });
 
-// ✅ Propose a trade
+// Propose a trade
 app.post("/api/proposeTrade", async (req, res) => {
   const { offeringTeam, receivingTeam, offeredWrestlers, requestedWrestlers } = req.body;
   if (!offeringTeam || !receivingTeam || !Array.isArray(offeredWrestlers) || !Array.isArray(requestedWrestlers)) {
     return res.status(400).json({ error: "Invalid trade proposal payload" });
+  }
+
+  if (await isRestrictedTime()) {
+    return res.status(403).json({ error: "Trades are restricted during show hours." });
   }
 
   try {
@@ -173,7 +262,7 @@ app.post("/api/proposeTrade", async (req, res) => {
   }
 });
 
-// ✅ Respond to a trade (accept or reject)
+// Respond to a trade
 app.post("/api/trades/:id/respond", async (req, res) => {
   const { id } = req.params;
   const { action } = req.body;
@@ -185,7 +274,6 @@ app.post("/api/trades/:id/respond", async (req, res) => {
     const trade = tradeRes.rows[0];
 
     if (action === "accept") {
-      // Get team IDs
       const sendTeam = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [trade.offering_team]);
       const recvTeam = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [trade.receiving_team]);
       if (sendTeam.rows.length === 0 || recvTeam.rows.length === 0) return res.status(400).json({ error: "Invalid team" });
@@ -245,7 +333,7 @@ app.get("/api/standings", async (req, res) => {
     const result = await pool.query(`
       SELECT t.team_name, COALESCE(SUM(w.points), 0) AS score
       FROM teams t
-      LEFT JOIN wrestlers w ON t.id = w.team_id
+      LEFT JOIN wrestlers w ON t.id = w.team_id AND w.starter = true
       GROUP BY t.team_name
       ORDER BY score DESC;
     `);
@@ -290,7 +378,7 @@ app.post("/api/importEvent", async (req, res) => {
           eventDetails.push({ name, points, description });
         }
       } else if (mode === "bonus") {
-        const bonusRegex = /^(.+?) — (\d+) pts — (.+)$/i;
+        const bonusRegex = /^(.+?) — (\\d+) pts — (.+)$/i;
         const match = normalized.match(bonusRegex);
         if (match) {
           const name = match[1].trim();
@@ -339,6 +427,7 @@ app.post("/api/importEvent", async (req, res) => {
   }
 });
 
+// Get full event summary
 app.get("/api/eventSummary", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -361,7 +450,7 @@ app.get("/api/eventSummary", async (req, res) => {
   }
 });
 
-// Get event point history for a specific wrestler
+// Get event history for a wrestler
 app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
   const { name } = req.params;
   try {
@@ -385,7 +474,7 @@ app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
   }
 });
 
-// Start the server
+// Start server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
 });
