@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "./EventSummary.css"; // Optional: use for custom styling
 
 const EventSummary = () => {
   const [data, setData] = useState([]);
