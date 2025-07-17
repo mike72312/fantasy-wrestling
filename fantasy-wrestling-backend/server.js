@@ -377,7 +377,16 @@ app.post("/api/importEvent", async (req, res) => {
       }
     });
 
+    // ✅ Log what we extracted from the HTML
+    console.log("🧠 Extracted event details:", eventDetails);
+
+    if (eventDetails.length === 0) {
+      console.warn("⚠️ No valid matches or bonus points found.");
+      return res.status(400).json({ error: "No valid matches or bonus points found." });
+    }
+
     const summary = [];
+
     for (const detail of eventDetails) {
       const { name, points, description } = detail;
 
@@ -385,7 +394,11 @@ app.post("/api/importEvent", async (req, res) => {
         "SELECT id, team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
         [name.toLowerCase()]
       );
-      if (wrestlerRes.rows.length === 0) continue;
+
+      if (wrestlerRes.rows.length === 0) {
+        console.warn(`⚠️ Wrestler not found in DB: ${name}`);
+        continue;
+      }
 
       const { id: wrestlerId, team_id } = wrestlerRes.rows[0];
 
@@ -398,7 +411,10 @@ app.post("/api/importEvent", async (req, res) => {
       );
 
       summary.push({ wrestler: name, points, description });
+      console.log(`→ Added ${points} to ${name} (${description})`);
     }
+
+    console.log("✅ Successfully updated DB:", summary);
 
     res.json({
       message: "✅ Event imported and points updated",
@@ -408,79 +424,6 @@ app.post("/api/importEvent", async (req, res) => {
   } catch (err) {
     console.error("❌ Error processing event:", err);
     res.status(500).json({ error: "Error processing event" });
-  }
-});
-
-
-app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
-  const { name } = req.params;
-  try {
-    const wrestlerRes = await pool.query(
-      "SELECT id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
-      [name.toLowerCase()]
-    );
-    if (wrestlerRes.rows.length === 0) return res.status(404).json({ error: "Wrestler not found" });
-
-    const wrestlerId = wrestlerRes.rows[0].id;
-const result = await pool.query(
-  `SELECT ep.event_name, ep.event_date, ep.points, t.team_name, ep.description
-   FROM event_points ep
-   JOIN wrestlers w ON ep.wrestler_id = w.id
-   LEFT JOIN teams t ON ep.team_id = t.id
-   WHERE LOWER(w.wrestler_name) = LOWER($1)
-   ORDER BY ep.event_date DESC`,
-  [name]
-);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching event points:", err);
-    res.status(500).json({ error: "Error fetching event points" });
-  }
-});
-
-app.get("/api/eventPoints/team/:teamName", async (req, res) => {
-  const { teamName } = req.params;
-  try {
-    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName.toLowerCase()]);
-    if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
-
-    const teamId = teamRes.rows[0].id;
-    const result = await pool.query(`
-      SELECT ep.event_name, ep.event_date, ep.points, w.wrestler_name
-      FROM event_points ep
-      JOIN wrestlers w ON ep.wrestler_id = w.id
-      WHERE ep.team_id = $1
-      ORDER BY ep.event_date DESC
-    `, [teamId]);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching team event points:", err);
-    res.status(500).json({ error: "Error fetching team event points" });
-  }
-});
-
-// Get detailed event summary: wrestler points by event
-app.get("/api/eventSummary", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT 
-        ep.event_name,
-        ep.event_date,
-        w.wrestler_name,
-        t.team_name,
-        ep.points,
-        ep.description
-      FROM event_points ep
-      JOIN wrestlers w ON ep.wrestler_id = w.id
-      LEFT JOIN teams t ON ep.team_id = t.id
-      ORDER BY ep.event_date DESC, ep.event_name, ep.points DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("❌ Error fetching detailed event summary:", err);
-    res.status(500).json({ error: "Failed to fetch event summary" });
   }
 });
 
