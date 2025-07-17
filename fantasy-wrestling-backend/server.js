@@ -339,6 +339,28 @@ app.post("/api/importEvent", async (req, res) => {
   }
 });
 
+app.get("/api/eventSummary", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ep.event_name,
+        ep.event_date,
+        w.wrestler_name,
+        t.team_name,
+        ep.points,
+        ep.description
+      FROM event_points ep
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      LEFT JOIN teams t ON ep.team_id = t.id
+      ORDER BY ep.event_date DESC, ep.event_name, ep.points DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("❌ Error fetching detailed event summary:", err);
+    res.status(500).json({ error: "Failed to fetch event summary" });
+  }
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
