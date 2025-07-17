@@ -5,6 +5,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 const TeamRoster = () => {
   const { teamName } = useParams();
   const [teamroster, setteamroster] = useState([]);
+  const [sortBy, setSortBy] = useState("wrestler_name");
+  const [sortOrder, setSortOrder] = useState("asc");
   const navigate = useNavigate();
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
 
@@ -49,44 +51,54 @@ const TeamRoster = () => {
     }
   };
 
+  const sortedRoster = [...teamroster].sort((a, b) => {
+    const aVal = a[sortBy];
+    const bVal = b[sortBy];
+    if (typeof aVal === "string") {
+      return sortOrder === "asc"
+        ? aVal.localeCompare(bVal)
+        : bVal.localeCompare(aVal);
+    }
+    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+  });
+
   return (
     <div className="container">
       <h2>{teamName}'s Roster</h2>
-      <table className="wrestler-table">
-        <thead>
-          <tr>
-            <th>Wrestler Name</th>
-            <th>Brand</th>
-            <th>Points</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {teamroster.map((wrestler, idx) => (
-            <tr key={idx}>
-              <td>
-                <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
-                  {wrestler.wrestler_name}
-                </Link>
-              </td>
-              <td>{wrestler.brand ?? "N/A"}</td>
-              <td>{wrestler.points ?? 0}</td>
-              <td>
-                {userTeam === teamName.toLowerCase() ? (
-                  <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>
-                ) : (
-                  <Link
-                    to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
-                    className="propose-trade-btn"
-                  >
-                    Propose Trade
-                  </Link>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <label>Sort by: </label>
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="wrestler_name">Name</option>
+          <option value="points">Points</option>
+        </select>
+        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+
+      <ul className="wrestler-list">
+        {sortedRoster.map((wrestler, i) => (
+          <li key={i}>
+            <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
+              {wrestler.wrestler_name}
+            </Link>{" "}
+            ({wrestler.points} pts)
+            {" — "}
+            {userTeam === teamName.toLowerCase() ? (
+              <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>
+            ) : (
+              <Link
+                to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
+                className="propose-trade-btn"
+              >
+                Propose Trade
+              </Link>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
