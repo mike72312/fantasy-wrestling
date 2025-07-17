@@ -9,7 +9,7 @@ const app = express();
 const port = process.env.PORT || 10000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // import file size
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
