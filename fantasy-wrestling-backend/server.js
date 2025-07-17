@@ -287,7 +287,7 @@ app.post("/api/importEvent", async (req, res) => {
     const $ = cheerio.load(eventHtml);
     const eventDetails = [];
 
-    $(".matchlist .result").each((_, el) => {
+    $(".result").each((_, el) => {
       const fullText = $(el).text().trim();
       const winnerLoserMatch = fullText.match(/^(.+?) defeated (.+?) via/i);
       const drawMatch = fullText.match(/^(.+?) fought (.+?) to a draw/i);
