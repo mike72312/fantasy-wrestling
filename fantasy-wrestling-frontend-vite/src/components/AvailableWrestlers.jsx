@@ -9,18 +9,21 @@ const AvailableWrestlers = () => {
   const [sortOrder, setSortOrder] = useState("desc");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const wrestlersPerPage = 25;
-
+  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
+  const wrestlersPerPage = 25;
+
   useEffect(() => {
-    fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
       .then((res) => res.json())
       .then((data) => {
-        setWrestlers(data.sort((a, b) => b.points - a.points));
+        const wrestlersArray = data.wrestlers || [];
+        setWrestlers(wrestlersArray);
+        setTotalPages(data.totalPages || 1);
       })
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
-  }, []);
+  }, [currentPage]);
 
   const handleAdd = async (wrestlerName) => {
     const teamName = localStorage.getItem("teamName");
@@ -64,11 +67,13 @@ const AvailableWrestlers = () => {
 
       if (!response.ok) throw new Error("Add failed");
 
-      setWrestlers((prev) =>
-        prev.map((w) =>
-          w.wrestler_name === wrestlerName ? { ...w, team_name: teamName } : w
-        )
-      );
+      // Refresh the page of data after adding
+      fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setWrestlers(data.wrestlers || []);
+          setTotalPages(data.totalPages || 1);
+        });
     } catch (err) {
       console.error("❌ Error adding wrestler:", err);
       alert("Failed to add wrestler.");
@@ -80,10 +85,8 @@ const AvailableWrestlers = () => {
   };
 
   const filteredWrestlers = wrestlers
-    .filter((w) =>
-      w.wrestler_name.toLowerCase().includes(search.toLowerCase())
-    )
-    .filter((w) => (showOnlyAvailable ? w.team_name === null : true));
+    .filter((w) => w.wrestler_name.toLowerCase().includes(search.toLowerCase()))
+    .filter((w) => (showOnlyAvailable ? !w.team_name : true));
 
   const sortedWrestlers = [...filteredWrestlers].sort((a, b) => {
     const aVal = a[sortBy] ?? "";
@@ -93,10 +96,6 @@ const AvailableWrestlers = () => {
     }
     return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
   });
-
-  const totalPages = Math.ceil(sortedWrestlers.length / wrestlersPerPage);
-  const startIndex = (currentPage - 1) * wrestlersPerPage;
-  const currentWrestlers = sortedWrestlers.slice(startIndex, startIndex + wrestlersPerPage);
 
   return (
     <div className="container">
@@ -126,7 +125,6 @@ const AvailableWrestlers = () => {
             checked={showOnlyAvailable}
             onChange={() => {
               setShowOnlyAvailable((prev) => !prev);
-              setCurrentPage(1);
             }}
           />
           {" "}Show only free agents
@@ -144,7 +142,7 @@ const AvailableWrestlers = () => {
           </tr>
         </thead>
         <tbody>
-          {currentWrestlers.map((w, idx) => (
+          {sortedWrestlers.map((w, idx) => (
             <tr key={idx}>
               <td>
                 <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
