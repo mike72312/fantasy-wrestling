@@ -125,7 +125,7 @@ app.post("/api/addWrestler", async (req, res) => {
 
   try {
     // Check team exists
-    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(name) = LOWER($1)", [teamName]);
+    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
     if (teamRes.rows.length === 0) {
       return res.status(400).json({ error: "Team not found" });
     }
@@ -170,7 +170,7 @@ app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
 
   try {
-    const teamIdResult = await pool.query("SELECT id FROM teams WHERE LOWER(name) = LOWER($1)", [teamName]);
+    const teamIdResult = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
     if (teamIdResult.rows.length === 0) {
       return res.status(400).json({ error: "Team not found" });
     }
