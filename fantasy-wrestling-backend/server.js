@@ -124,14 +124,12 @@ app.post("/api/addWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
 
   try {
-    // Check team exists
     const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
     if (teamRes.rows.length === 0) {
       return res.status(400).json({ error: "Team not found" });
     }
     const teamId = teamRes.rows[0].id;
 
-    // Check if wrestler is already on a team
     const checkWrestler = await pool.query(
       "SELECT team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
       [wrestlerName]
@@ -143,7 +141,6 @@ app.post("/api/addWrestler", async (req, res) => {
       return res.status(403).json({ error: "Wrestler is already on a team" });
     }
 
-    // Check current team size
     const rosterCountRes = await pool.query(
       "SELECT COUNT(*) FROM wrestlers WHERE team_id = $1",
       [teamId]
@@ -152,10 +149,15 @@ app.post("/api/addWrestler", async (req, res) => {
       return res.status(403).json({ error: "Team already has 8 wrestlers" });
     }
 
-    // Assign wrestler to team as a bench member
     await pool.query(
       "UPDATE wrestlers SET team_id = $1, starter = false WHERE LOWER(wrestler_name) = LOWER($2)",
       [teamId, wrestlerName]
+    );
+
+    // ✅ Log the transaction
+    await pool.query(
+      "INSERT INTO transactions (team_name, wrestler_name, action, timestamp) VALUES ($1, $2, 'add', NOW())",
+      [teamName, wrestlerName]
     );
 
     res.json({ message: "Wrestler added to team" });
@@ -184,6 +186,12 @@ app.post("/api/dropWrestler", async (req, res) => {
     if (update.rowCount === 0) {
       return res.status(403).json({ error: "Wrestler not on that team or already dropped" });
     }
+
+    // ✅ Log the transaction
+    await pool.query(
+      "INSERT INTO transactions (team_name, wrestler_name, action, timestamp) VALUES ($1, $2, 'drop', NOW())",
+      [teamName, wrestlerName]
+    );
 
     res.json({ message: "Wrestler dropped" });
   } catch (err) {

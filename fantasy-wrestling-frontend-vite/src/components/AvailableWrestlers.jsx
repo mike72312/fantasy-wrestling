@@ -1,7 +1,7 @@
 // src/components/AvailableWrestlers.jsx
 // src/components/AvailableWrestlers.jsx
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
@@ -9,9 +9,8 @@ const AvailableWrestlers = () => {
   const [sortBy, setSortBy] = useState("points");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
-  const navigate = useNavigate();
 
-  const teamName = localStorage.getItem("teamName");
+  const userTeam = localStorage.getItem("teamName");
 
   const fetchWrestlers = () => {
     fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
@@ -28,7 +27,7 @@ const AvailableWrestlers = () => {
   }, []);
 
   const handleAdd = async (wrestlerName) => {
-    if (!teamName) return alert("No team selected.");
+    if (!userTeam) return alert("No team selected.");
 
     const now = new Date();
     const currentDay = now.getDay();
@@ -46,7 +45,7 @@ const AvailableWrestlers = () => {
     }
 
     try {
-      const rosterRes = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`);
+      const rosterRes = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${userTeam}`);
       const roster = await rosterRes.json();
 
       if (roster.length >= 8) {
@@ -63,7 +62,7 @@ const AvailableWrestlers = () => {
       const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/addWrestler", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamName, wrestlerName }),
+        body: JSON.stringify({ teamName: userTeam, wrestlerName }),
       });
 
       if (!response.ok) throw new Error("Add failed");
@@ -76,13 +75,13 @@ const AvailableWrestlers = () => {
   };
 
   const handleDrop = async (wrestlerName) => {
-    if (!teamName) return alert("No team selected.");
+    if (!userTeam) return alert("No team selected.");
 
     try {
       const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamName, wrestlerName }),
+        body: JSON.stringify({ teamName: userTeam, wrestlerName }),
       });
 
       if (!response.ok) throw new Error("Drop failed");
@@ -92,14 +91,6 @@ const AvailableWrestlers = () => {
       console.error("❌ Error dropping wrestler:", err);
       alert("Failed to drop wrestler.");
     }
-  };
-
-  const handleProposeTrade = (wrestlerName, opponentTeam) => {
-    if (!opponentTeam) {
-      alert("This wrestler is not on a team.");
-      return;
-    }
-    navigate(`/trade/${encodeURIComponent(opponentTeam)}/${encodeURIComponent(wrestlerName)}`);
   };
 
   const filteredWrestlers = wrestlers
@@ -168,7 +159,7 @@ const AvailableWrestlers = () => {
         <tbody>
           {sortedWrestlers.map((w, idx) => {
             const isFreeAgent = w.team_name === null;
-            const isMyTeam = w.team_name?.toLowerCase() === teamName?.toLowerCase();
+            const isMyTeam = w.team_name?.toLowerCase() === userTeam?.toLowerCase();
 
             return (
               <tr key={idx}>
@@ -204,12 +195,12 @@ const AvailableWrestlers = () => {
                       Drop
                     </button>
                   ) : (
-                    <button
-                      style={{ ...buttonStyle, backgroundColor: "blue" }}
-                      onClick={() => handleProposeTrade(w.wrestler_name, w.team_name)}
+                    <Link
+                      to={`/trade/${encodeURIComponent(w.team_name)}/${encodeURIComponent(w.wrestler_name)}`}
+                      style={{ ...buttonStyle, backgroundColor: "blue", textDecoration: "none", display: "inline-block", textAlign: "center" }}
                     >
                       Propose Trade
-                    </button>
+                    </Link>
                   )}
                 </td>
               </tr>
