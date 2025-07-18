@@ -9,22 +9,23 @@ const AvailableWrestlers = () => {
   const [sortBy, setSortBy] = useState("points");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
 
-  const wrestlersPerPage = 25;
   const teamName = localStorage.getItem("teamName");
 
-  useEffect(() => {
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
+  const fetchWrestlers = () => {
+    fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
       .then((res) => res.json())
       .then((data) => {
-        setWrestlers(data.wrestlers || []);
-        setTotalPages(data.totalPages || 1);
+        const wrestlersArray = Array.isArray(data) ? data : data.wrestlers;
+        setWrestlers(wrestlersArray || []);
       })
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
-  }, [currentPage]);
+  };
+
+  useEffect(() => {
+    fetchWrestlers();
+  }, []);
 
   const handleAdd = async (wrestlerName) => {
     if (!teamName) return alert("No team selected.");
@@ -67,13 +68,7 @@ const AvailableWrestlers = () => {
 
       if (!response.ok) throw new Error("Add failed");
 
-      // Refresh the page of data after adding
-      fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setWrestlers(data.wrestlers || []);
-          setTotalPages(data.totalPages || 1);
-        });
+      fetchWrestlers();
     } catch (err) {
       console.error("❌ Error adding wrestler:", err);
       alert("Failed to add wrestler.");
@@ -92,13 +87,7 @@ const AvailableWrestlers = () => {
 
       if (!response.ok) throw new Error("Drop failed");
 
-      // Refresh page data after drop
-      fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setWrestlers(data.wrestlers || []);
-          setTotalPages(data.totalPages || 1);
-        });
+      fetchWrestlers();
     } catch (err) {
       console.error("❌ Error dropping wrestler:", err);
       alert("Failed to drop wrestler.");
@@ -121,6 +110,14 @@ const AvailableWrestlers = () => {
     }
     return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
   });
+
+  const buttonStyle = {
+    padding: "6px 12px",
+    border: "none",
+    borderRadius: "4px",
+    color: "#fff",
+    cursor: "pointer"
+  };
 
   return (
     <div className="container">
@@ -148,9 +145,7 @@ const AvailableWrestlers = () => {
           <input
             type="checkbox"
             checked={showOnlyAvailable}
-            onChange={() => {
-              setShowOnlyAvailable((prev) => !prev);
-            }}
+            onChange={() => setShowOnlyAvailable((prev) => !prev)}
           />
           {" "}Show only free agents
         </label>
@@ -191,11 +186,26 @@ const AvailableWrestlers = () => {
                 </td>
                 <td>
                   {isFreeAgent ? (
-                    <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
+                    <button
+                      style={{ ...buttonStyle, backgroundColor: "green" }}
+                      onClick={() => handleAdd(w.wrestler_name)}
+                    >
+                      Add
+                    </button>
                   ) : isMyTeam ? (
-                    <button onClick={() => handleDrop(w.wrestler_name)}>Drop</button>
+                    <button
+                      style={{ ...buttonStyle, backgroundColor: "red" }}
+                      onClick={() => handleDrop(w.wrestler_name)}
+                    >
+                      Drop
+                    </button>
                   ) : (
-                    <button onClick={() => handleProposeTrade(w.wrestler_name)}>Propose Trade</button>
+                    <button
+                      style={{ ...buttonStyle, backgroundColor: "blue" }}
+                      onClick={() => handleProposeTrade(w.wrestler_name)}
+                    >
+                      Propose Trade
+                    </button>
                   )}
                 </td>
               </tr>
@@ -203,24 +213,6 @@ const AvailableWrestlers = () => {
           })}
         </tbody>
       </table>
-
-      <div style={{ marginTop: "1rem", textAlign: "center" }}>
-        <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage(currentPage - 1)}
-        >
-          Previous
-        </button>
-        <span style={{ margin: "0 1rem" }}>
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage(currentPage + 1)}
-        >
-          Next
-        </button>
-      </div>
     </div>
   );
 };
