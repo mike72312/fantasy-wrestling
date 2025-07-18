@@ -1,4 +1,5 @@
 // src/components/AvailableWrestlers.jsx
+// src/components/AvailableWrestlers.jsx
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -13,20 +14,19 @@ const AvailableWrestlers = () => {
   const navigate = useNavigate();
 
   const wrestlersPerPage = 25;
+  const teamName = localStorage.getItem("teamName");
 
   useEffect(() => {
     fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
       .then((res) => res.json())
       .then((data) => {
-        const wrestlersArray = data.wrestlers || [];
-        setWrestlers(wrestlersArray);
+        setWrestlers(data.wrestlers || []);
         setTotalPages(data.totalPages || 1);
       })
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
   }, [currentPage]);
 
   const handleAdd = async (wrestlerName) => {
-    const teamName = localStorage.getItem("teamName");
     if (!teamName) return alert("No team selected.");
 
     const now = new Date();
@@ -77,6 +77,31 @@ const AvailableWrestlers = () => {
     } catch (err) {
       console.error("❌ Error adding wrestler:", err);
       alert("Failed to add wrestler.");
+    }
+  };
+
+  const handleDrop = async (wrestlerName) => {
+    if (!teamName) return alert("No team selected.");
+
+    try {
+      const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamName, wrestlerName }),
+      });
+
+      if (!response.ok) throw new Error("Drop failed");
+
+      // Refresh page data after drop
+      fetch(`https://fantasy-wrestling-backend.onrender.com/api/allWrestlers?page=${currentPage}&limit=${wrestlersPerPage}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setWrestlers(data.wrestlers || []);
+          setTotalPages(data.totalPages || 1);
+        });
+    } catch (err) {
+      console.error("❌ Error dropping wrestler:", err);
+      alert("Failed to drop wrestler.");
     }
   };
 
@@ -142,33 +167,40 @@ const AvailableWrestlers = () => {
           </tr>
         </thead>
         <tbody>
-          {sortedWrestlers.map((w, idx) => (
-            <tr key={idx}>
-              <td>
-                <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
-                  {w.wrestler_name}
-                </Link>
-              </td>
-              <td>{w.brand ?? "N/A"}</td>
-              <td>{w.points ?? "N/A"}</td>
-              <td>
-                {w.team_name ? (
-                  <Link to={`/roster/${encodeURIComponent(w.team_name)}`}>
-                    {w.team_name}
+          {sortedWrestlers.map((w, idx) => {
+            const isFreeAgent = w.team_name === null;
+            const isMyTeam = w.team_name?.toLowerCase() === teamName?.toLowerCase();
+
+            return (
+              <tr key={idx}>
+                <td>
+                  <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
+                    {w.wrestler_name}
                   </Link>
-                ) : (
-                  "Free Agent"
-                )}
-              </td>
-              <td>
-                {w.team_name === null ? (
-                  <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
-                ) : (
-                  <button onClick={() => handleProposeTrade(w.wrestler_name)}>Propose Trade</button>
-                )}
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td>{w.brand ?? "N/A"}</td>
+                <td>{w.points ?? "N/A"}</td>
+                <td>
+                  {w.team_name ? (
+                    <Link to={`/roster/${encodeURIComponent(w.team_name)}`}>
+                      {w.team_name}
+                    </Link>
+                  ) : (
+                    "Free Agent"
+                  )}
+                </td>
+                <td>
+                  {isFreeAgent ? (
+                    <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
+                  ) : isMyTeam ? (
+                    <button onClick={() => handleDrop(w.wrestler_name)}>Drop</button>
+                  ) : (
+                    <button onClick={() => handleProposeTrade(w.wrestler_name)}>Propose Trade</button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
