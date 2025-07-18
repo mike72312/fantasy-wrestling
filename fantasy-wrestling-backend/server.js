@@ -484,14 +484,33 @@ app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
 
 // Get all wrestlers, including team assignment
 app.get("/api/allWrestlers", async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 25;
+  const offset = (page - 1) * limit;
+
   try {
-    const query = `
+    const dataQuery = `
       SELECT w.wrestler_name, w.brand, w.points, t.team_name
       FROM wrestlers w
       LEFT JOIN teams t ON w.team_id = t.id
+      ORDER BY w.points DESC
+      LIMIT $1 OFFSET $2
     `;
-    const result = await pool.query(query);
-    res.json(result.rows);
+    const countQuery = `SELECT COUNT(*) FROM wrestlers`;
+
+    const [dataResult, countResult] = await Promise.all([
+      pool.query(dataQuery, [limit, offset]),
+      pool.query(countQuery),
+    ]);
+
+    const total = parseInt(countResult.rows[0].count);
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      wrestlers: dataResult.rows,
+      currentPage: page,
+      totalPages,
+    });
   } catch (err) {
     console.error("Error fetching all wrestlers:", err);
     res.status(500).json({ error: "Failed to fetch all wrestlers." });

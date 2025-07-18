@@ -8,6 +8,8 @@ const AvailableWrestlers = () => {
   const [sortBy, setSortBy] = useState("points");
   const [sortOrder, setSortOrder] = useState("desc");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const wrestlersPerPage = 25;
 
   const navigate = useNavigate();
 
@@ -15,8 +17,7 @@ const AvailableWrestlers = () => {
     fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
       .then((res) => res.json())
       .then((data) => {
-        const sorted = [...data].sort((a, b) => b.points - a.points);
-        setWrestlers(sorted);
+        setWrestlers(data.sort((a, b) => b.points - a.points));
       })
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
   }, []);
@@ -62,6 +63,7 @@ const AvailableWrestlers = () => {
       });
 
       if (!response.ok) throw new Error("Add failed");
+
       setWrestlers((prev) =>
         prev.map((w) =>
           w.wrestler_name === wrestlerName ? { ...w, team_name: teamName } : w
@@ -92,6 +94,10 @@ const AvailableWrestlers = () => {
     return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
   });
 
+  const totalPages = Math.ceil(sortedWrestlers.length / wrestlersPerPage);
+  const startIndex = (currentPage - 1) * wrestlersPerPage;
+  const currentWrestlers = sortedWrestlers.slice(startIndex, startIndex + wrestlersPerPage);
+
   return (
     <div className="container">
       <h2>All Wrestlers</h2>
@@ -118,7 +124,10 @@ const AvailableWrestlers = () => {
           <input
             type="checkbox"
             checked={showOnlyAvailable}
-            onChange={() => setShowOnlyAvailable((prev) => !prev)}
+            onChange={() => {
+              setShowOnlyAvailable((prev) => !prev);
+              setCurrentPage(1);
+            }}
           />
           {" "}Show only free agents
         </label>
@@ -135,7 +144,7 @@ const AvailableWrestlers = () => {
           </tr>
         </thead>
         <tbody>
-          {sortedWrestlers.map((w, idx) => (
+          {currentWrestlers.map((w, idx) => (
             <tr key={idx}>
               <td>
                 <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
@@ -164,6 +173,24 @@ const AvailableWrestlers = () => {
           ))}
         </tbody>
       </table>
+
+      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+        <button
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage(currentPage - 1)}
+        >
+          Previous
+        </button>
+        <span style={{ margin: "0 1rem" }}>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage(currentPage + 1)}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };
