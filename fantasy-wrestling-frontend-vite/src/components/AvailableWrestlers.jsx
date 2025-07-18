@@ -1,15 +1,18 @@
 // src/components/AvailableWrestlers.jsx
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("points");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://fantasy-wrestling-backend.onrender.com/api/availableWrestlers")
+    fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
       .then((res) => res.json())
       .then((data) => {
         const sorted = [...data].sort((a, b) => b.points - a.points);
@@ -37,7 +40,6 @@ const AvailableWrestlers = () => {
       return alert("Add/drop is not allowed during event hours (Mon/Fri/Sat 8–11pm ET).");
     }
 
-    // Check team size first
     try {
       const rosterRes = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`);
       const roster = await rosterRes.json();
@@ -60,16 +62,26 @@ const AvailableWrestlers = () => {
       });
 
       if (!response.ok) throw new Error("Add failed");
-      setWrestlers((prev) => prev.filter((w) => w.wrestler_name !== wrestlerName));
+      setWrestlers((prev) =>
+        prev.map((w) =>
+          w.wrestler_name === wrestlerName ? { ...w, team_name: teamName } : w
+        )
+      );
     } catch (err) {
       console.error("❌ Error adding wrestler:", err);
       alert("Failed to add wrestler.");
     }
   };
 
-  const filteredWrestlers = wrestlers.filter((w) =>
-    w.wrestler_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleProposeTrade = (wrestlerName) => {
+    navigate(`/trade-proposal?requested=${encodeURIComponent(wrestlerName)}`);
+  };
+
+  const filteredWrestlers = wrestlers
+    .filter((w) =>
+      w.wrestler_name.toLowerCase().includes(search.toLowerCase())
+    )
+    .filter((w) => (showOnlyAvailable ? w.team_name === null : true));
 
   const sortedWrestlers = [...filteredWrestlers].sort((a, b) => {
     const aVal = a[sortBy] ?? "";
@@ -82,7 +94,7 @@ const AvailableWrestlers = () => {
 
   return (
     <div className="container">
-      <h2>Available Wrestlers</h2>
+      <h2>All Wrestlers</h2>
 
       <input
         type="text"
@@ -102,6 +114,14 @@ const AvailableWrestlers = () => {
           <option value="desc">Descending</option>
           <option value="asc">Ascending</option>
         </select>
+        <label style={{ marginLeft: "1rem" }}>
+          <input
+            type="checkbox"
+            checked={showOnlyAvailable}
+            onChange={() => setShowOnlyAvailable((prev) => !prev)}
+          />
+          {" "}Show only free agents
+        </label>
       </div>
 
       <table className="wrestler-table">
@@ -110,6 +130,7 @@ const AvailableWrestlers = () => {
             <th>Wrestler Name</th>
             <th>Brand</th>
             <th>Points</th>
+            <th>Team Name</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -124,7 +145,20 @@ const AvailableWrestlers = () => {
               <td>{w.brand ?? "N/A"}</td>
               <td>{w.points ?? "N/A"}</td>
               <td>
-                <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
+                {w.team_name ? (
+                  <Link to={`/roster/${encodeURIComponent(w.team_name)}`}>
+                    {w.team_name}
+                  </Link>
+                ) : (
+                  "Free Agent"
+                )}
+              </td>
+              <td>
+                {w.team_name === null ? (
+                  <button onClick={() => handleAdd(w.wrestler_name)}>Add</button>
+                ) : (
+                  <button onClick={() => handleProposeTrade(w.wrestler_name)}>Propose Trade</button>
+                )}
               </td>
             </tr>
           ))}
