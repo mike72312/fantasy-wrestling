@@ -122,30 +122,46 @@ app.get("/api/roster/:teamName", async (req, res) => {
 // Add a wrestler to a team
 app.post("/api/addWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
-  try {
-    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
-    if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
 
+  try {
+    // Check team exists
+    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(name) = LOWER($1)", [teamName]);
+    if (teamRes.rows.length === 0) {
+      return res.status(400).json({ error: "Team not found" });
+    }
     const teamId = teamRes.rows[0].id;
 
-    const updateResult = await pool.query(
-      "UPDATE wrestlers SET team_id = $1 WHERE wrestler_name = $2 AND team_id IS NULL",
+    // Check if wrestler is already on a team
+    const checkWrestler = await pool.query(
+      "SELECT team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+      [wrestlerName]
+    );
+    if (checkWrestler.rows.length === 0) {
+      return res.status(400).json({ error: "Wrestler not found" });
+    }
+    if (checkWrestler.rows[0].team_id !== null) {
+      return res.status(403).json({ error: "Wrestler is already on a team" });
+    }
+
+    // Check current team size
+    const rosterCountRes = await pool.query(
+      "SELECT COUNT(*) FROM wrestlers WHERE team_id = $1",
+      [teamId]
+    );
+    if (parseInt(rosterCountRes.rows[0].count) >= 8) {
+      return res.status(403).json({ error: "Team already has 8 wrestlers" });
+    }
+
+    // Assign wrestler to team as a bench member
+    await pool.query(
+      "UPDATE wrestlers SET team_id = $1, starter = false WHERE LOWER(wrestler_name) = LOWER($2)",
       [teamId, wrestlerName]
     );
 
-    if (updateResult.rowCount === 0) {
-      return res.status(400).json({ error: "Wrestler already on a team or not found." });
-    }
-
-    await pool.query(
-      "INSERT INTO transactions (wrestler_name, team_name, action, timestamp) VALUES ($1, $2, 'add', NOW())",
-      [wrestlerName, teamName]
-    );
-
-    res.json({ message: `${wrestlerName} added to ${teamName}` });
+    res.json({ message: "Wrestler added to team" });
   } catch (err) {
     console.error("Error adding wrestler:", err);
-    res.status(500).json({ error: "Error adding wrestler" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
@@ -153,34 +169,26 @@ app.post("/api/addWrestler", async (req, res) => {
 app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
 
-  if (await isRestrictedTime()) {
-    return res.status(403).json({ error: "Cannot drop during restricted hours." });
-  }
-
   try {
-    const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
-    if (teamRes.rows.length === 0) return res.status(404).json({ error: "Team not found" });
+    const teamIdResult = await pool.query("SELECT id FROM teams WHERE LOWER(name) = LOWER($1)", [teamName]);
+    if (teamIdResult.rows.length === 0) {
+      return res.status(400).json({ error: "Team not found" });
+    }
+    const teamId = teamIdResult.rows[0].id;
 
-    const teamId = teamRes.rows[0].id;
-
-    const updateResult = await pool.query(
-      "UPDATE wrestlers SET team_id = NULL WHERE wrestler_name = $1 AND team_id = $2",
+    const update = await pool.query(
+      "UPDATE wrestlers SET team_id = NULL, starter = FALSE WHERE LOWER(wrestler_name) = LOWER($1) AND team_id = $2",
       [wrestlerName, teamId]
     );
 
-    if (updateResult.rowCount === 0) {
-      return res.status(400).json({ error: "Wrestler not on this team or not found." });
+    if (update.rowCount === 0) {
+      return res.status(403).json({ error: "Wrestler not on that team or already dropped" });
     }
 
-    await pool.query(
-      "INSERT INTO transactions (wrestler_name, team_name, action, timestamp) VALUES ($1, $2, 'drop', NOW())",
-      [wrestlerName, teamName]
-    );
-
-    res.json({ message: `${wrestlerName} dropped from ${teamName}` });
+    res.json({ message: "Wrestler dropped" });
   } catch (err) {
     console.error("Error dropping wrestler:", err);
-    res.status(500).json({ error: "Error dropping wrestler" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
