@@ -94,8 +94,12 @@ const AvailableWrestlers = () => {
     }
   };
 
-  const handleProposeTrade = (wrestlerName) => {
-    navigate(`/trade-proposal?requested=${encodeURIComponent(wrestlerName)}`);
+  const handleProposeTrade = (wrestlerName, opponentTeam) => {
+    if (!opponentTeam) {
+      alert("This wrestler is not on a team.");
+      return;
+    }
+    navigate(`/trade/${encodeURIComponent(opponentTeam)}/${encodeURIComponent(wrestlerName)}`);
   };
 
   const filteredWrestlers = wrestlers
@@ -202,7 +206,7 @@ const AvailableWrestlers = () => {
                   ) : (
                     <button
                       style={{ ...buttonStyle, backgroundColor: "blue" }}
-                      onClick={() => handleProposeTrade(w.wrestler_name)}
+                      onClick={() => handleProposeTrade(w.wrestler_name, w.team_name)}
                     >
                       Propose Trade
                     </button>
