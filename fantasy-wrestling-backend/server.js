@@ -482,6 +482,22 @@ app.get("/api/eventPoints/wrestler/:name", async (req, res) => {
   }
 });
 
+// Get all wrestlers, including team assignment
+app.get("/api/allWrestlers", async (req, res) => {
+  try {
+    const query = `
+      SELECT w.wrestler_name, w.brand, w.points, t.team_name
+      FROM wrestlers w
+      LEFT JOIN teams t ON w.team_id = t.id
+    `;
+    const result = await pool.query(query);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching all wrestlers:", err);
+    res.status(500).json({ error: "Failed to fetch all wrestlers." });
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
