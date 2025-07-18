@@ -36,6 +36,14 @@ const TeamRoster = () => {
 
   const handleToggleStarter = async (wrestlerName, newStatus) => {
     try {
+      if (newStatus) {
+        const starterCount = teamroster.filter((w) => w.starter).length;
+        if (starterCount >= 5) {
+          alert("You already have 5 starters. Move someone to the bench before promoting another.");
+          return;
+        }
+      }
+
       const res = await fetch("https://fantasy-wrestling-backend.onrender.com/api/setStarterStatus", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

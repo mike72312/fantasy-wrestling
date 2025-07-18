@@ -1,3 +1,4 @@
+// src/components/AvailableWrestlers.jsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -11,7 +12,7 @@ const AvailableWrestlers = () => {
     fetch("https://fantasy-wrestling-backend.onrender.com/api/availableWrestlers")
       .then((res) => res.json())
       .then((data) => {
-        const sorted = [...data].sort((a, b) => b.points - a.points); // default: highest points first
+        const sorted = [...data].sort((a, b) => b.points - a.points);
         setWrestlers(sorted);
       })
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
@@ -21,19 +22,34 @@ const AvailableWrestlers = () => {
     const teamName = localStorage.getItem("teamName");
     if (!teamName) return alert("No team selected.");
 
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
     const restrictedHours = [
       { day: 1, start: 20, end: 23 },
       { day: 5, start: 20, end: 23 },
       { day: 6, start: 20, end: 23 },
     ];
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentHour = now.getHours();
     const isRestricted = restrictedHours.some(
       (r) => r.day === currentDay && currentHour >= r.start && currentHour < r.end
     );
     if (isRestricted) {
       return alert("Add/drop is not allowed during event hours (Mon/Fri/Sat 8–11pm ET).");
+    }
+
+    // Check team size first
+    try {
+      const rosterRes = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`);
+      const roster = await rosterRes.json();
+
+      if (roster.length >= 8) {
+        alert("You already have 8 wrestlers. Drop someone before adding a new one.");
+        return;
+      }
+    } catch (err) {
+      console.error("Error checking team size:", err);
+      alert("Could not verify team size.");
+      return;
     }
 
     try {
@@ -59,9 +75,7 @@ const AvailableWrestlers = () => {
     const aVal = a[sortBy] ?? "";
     const bVal = b[sortBy] ?? "";
     if (typeof aVal === "string") {
-      return sortOrder === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
+      return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
     }
     return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
   });
