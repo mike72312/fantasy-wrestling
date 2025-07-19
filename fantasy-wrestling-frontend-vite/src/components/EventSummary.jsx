@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 const EventSummary = () => {
   const [data, setData] = useState([]);
@@ -8,9 +9,9 @@ const EventSummary = () => {
   const [wrestlerFilter, setWrestlerFilter] = useState("");
   const [descFilter, setDescFilter] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
@@ -18,8 +19,12 @@ const EventSummary = () => {
     const fetchData = async () => {
       try {
         const res = await axios.get("https://fantasy-wrestling-backend.onrender.com/api/eventSummary");
-        setData(res.data);
-        setFiltered(res.data);
+        const normalizedData = res.data.map(row => ({
+          ...row,
+          team_name: row.team_name || "Free Agent"
+        }));
+        setData(normalizedData);
+        setFiltered(normalizedData);
       } catch (err) {
         console.error("❌ Error loading event summary:", err);
       }
@@ -34,6 +39,7 @@ const EventSummary = () => {
     if (wrestlerFilter) temp = temp.filter(row => row.wrestler_name === wrestlerFilter);
     if (descFilter) temp = temp.filter(row => row.description === descFilter);
     if (teamFilter) temp = temp.filter(row => row.team_name === teamFilter);
+    if (dateFilter) temp = temp.filter(row => formatDate(row.event_date) === dateFilter);
 
     if (sortConfig.key) {
       temp.sort((a, b) => {
@@ -52,8 +58,8 @@ const EventSummary = () => {
     }
 
     setFiltered(temp);
-    setCurrentPage(1); // reset pagination on filter change
-  }, [eventFilter, wrestlerFilter, descFilter, teamFilter, sortConfig, data]);
+    setCurrentPage(1);
+  }, [eventFilter, wrestlerFilter, descFilter, teamFilter, dateFilter, sortConfig, data]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -111,6 +117,13 @@ const EventSummary = () => {
             <option key={i} value={desc}>{desc}</option>
           ))}
         </select>
+
+        <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
+          <option value="">All Dates</option>
+          {uniqueValues("event_date").map((dateStr, i) => (
+            <option key={i} value={formatDate(dateStr)}>{formatDate(dateStr)}</option>
+          ))}
+        </select>
       </div>
 
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
@@ -133,7 +146,11 @@ const EventSummary = () => {
             <tr key={i}>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.event_name}</td>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{formatDate(row.event_date)}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.wrestler_name}</td>
+              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
+                <Link to={`/wrestler/${encodeURIComponent(row.wrestler_name)}`} style={{ textDecoration: "none", color: "#007bff" }}>
+                  {row.wrestler_name}
+                </Link>
+              </td>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.team_name}</td>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.points}</td>
               <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.description}</td>
