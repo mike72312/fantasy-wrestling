@@ -1,6 +1,7 @@
 // src/components/LeagueSettings.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import "./LeagueSettings.css";
 
 const LeagueSettings = () => {
   const [windows, setWindows] = useState([]);
