@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import "./StandingsAndTransactions.css";
 
 const StandingsAndTransactions = () => {
   const [standings, setStandings] = useState([]);
@@ -10,7 +11,6 @@ const StandingsAndTransactions = () => {
   const [trades, setTrades] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-  // Pagination
   const [txPage, setTxPage] = useState(1);
   const [tradePage, setTradePage] = useState(1);
   const itemsPerPage = 10;
@@ -83,15 +83,14 @@ const StandingsAndTransactions = () => {
       </table>
 
       <h2>Transactions</h2>
-      <div style={{ margin: "10px 0" }}>
+      <div className="transactions-filter">
         <input
           type="text"
           placeholder="Search Wrestler"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ marginRight: "1rem", padding: "0.4rem" }}
         />
-        <select value={filter} onChange={e => setFilter(e.target.value)} style={{ padding: "0.4rem" }}>
+        <select value={filter} onChange={e => setFilter(e.target.value)}>
           <option value="">All Types</option>
           <option value="add">Add</option>
           <option value="drop">Drop</option>
@@ -156,57 +155,6 @@ const StandingsAndTransactions = () => {
         totalPages={totalTradePages}
         onPageChange={setTradePage}
       />
-
-      <style>{`
-        .styled-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 10px 0;
-          font-size: 1rem;
-          text-align: left;
-        }
-
-        .styled-table th {
-          background-color: #f4f4f4;
-          cursor: pointer;
-          padding: 0.6rem;
-          border-bottom: 2px solid #ccc;
-        }
-
-        .styled-table td {
-          padding: 0.6rem;
-          border-bottom: 1px solid #eee;
-        }
-
-        .styled-table tr:hover {
-          background-color: #f9f9f9;
-        }
-
-        .pagination {
-          margin: 1rem 0;
-          display: flex;
-          justify-content: center;
-          gap: 0.5rem;
-        }
-
-        .pagination button {
-          padding: 0.4rem 0.8rem;
-          border: 1px solid #ccc;
-          background-color: white;
-          cursor: pointer;
-        }
-
-        .pagination button.active {
-          background-color: #007bff;
-          color: white;
-          font-weight: bold;
-        }
-
-        .pagination button:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-      `}</style>
     </div>
   );
 };

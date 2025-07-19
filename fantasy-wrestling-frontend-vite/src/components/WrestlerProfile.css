@@ -1,0 +1,33 @@
+.wrestler-profile-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.wrestler-profile-note {
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.wrestler-profile-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.wrestler-profile-table th,
+.wrestler-profile-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.wrestler-profile-table th {
+  background-color: #f4f4f4;
+  cursor: pointer;
+}
+
+.wrestler-profile-loading {
+  text-align: center;
+  padding: 20px;
+}

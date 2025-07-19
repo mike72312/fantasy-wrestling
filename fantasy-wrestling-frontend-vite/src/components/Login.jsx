@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Login.css';
 
 const Login = () => {
   const [teamName, setTeamName] = useState('');
@@ -12,9 +13,8 @@ const Login = () => {
   const handleLogin = (event) => {
     event.preventDefault();
     if (teamName.trim()) {
-      // Store the team name in localStorage
       localStorage.setItem('teamName', teamName);
-      navigate('/');  // Redirect to the Home page after login
+      navigate('/');
     } else {
       alert('Please enter a valid team name.');
     }

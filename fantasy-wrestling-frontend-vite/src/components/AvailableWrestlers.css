@@ -1,0 +1,76 @@
+.aw-container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
+
+.aw-search {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.aw-controls {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.aw-hint {
+  font-style: italic;
+}
+
+.aw-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.aw-table th,
+.aw-table td {
+  padding: 10px;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+.aw-table th {
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+.aw-table tr:nth-child(even) {
+  background-color: #fdfdfd;
+}
+
+.aw-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+.aw-add {
+  background-color: green;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.aw-drop {
+  background-color: red;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.aw-trade {
+  background-color: blue;
+  color: white;
+  padding: 6px 12px;
+  text-decoration: none;
+  border-radius: 4px;
+  display: inline-block;
+  text-align: center;
+}

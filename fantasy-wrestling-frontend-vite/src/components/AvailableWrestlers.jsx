@@ -1,6 +1,6 @@
-// src/components/AvailableWrestlers.jsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import "./AvailableWrestlers.css";
 
 const AvailableWrestlers = () => {
   const [wrestlers, setWrestlers] = useState([]);
@@ -10,6 +10,16 @@ const AvailableWrestlers = () => {
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
 
   const userTeam = localStorage.getItem("teamName");
+
+  useEffect(() => {
+    fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
+      .then((res) => res.json())
+      .then((data) => {
+        const wrestlersArray = Array.isArray(data) ? data : data.wrestlers;
+        setWrestlers(wrestlersArray || []);
+      })
+      .catch((err) => console.error("❌ Error fetching wrestlers:", err));
+  }, []);
 
   const fetchWrestlers = () => {
     fetch("https://fantasy-wrestling-backend.onrender.com/api/allWrestlers")
@@ -21,16 +31,50 @@ const AvailableWrestlers = () => {
       .catch((err) => console.error("❌ Error fetching wrestlers:", err));
   };
 
-  useEffect(() => {
-    fetchWrestlers();
-  }, []);
-
   const handleSort = (column) => {
     if (sortBy === column) {
       setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(column);
       setSortOrder("desc");
+    }
+  };
+
+  const handleAdd = async (wrestlerName) => {
+    try {
+      const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/addWrestler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamName: userTeam, wrestlerName })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to add wrestler.");
+
+      alert(`${wrestlerName} added to your team.`);
+      fetchWrestlers();
+    } catch (err) {
+      console.error("Add error:", err);
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const handleDrop = async (wrestlerName) => {
+    try {
+      const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamName: userTeam, wrestlerName })
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to drop wrestler.");
+
+      alert(`${wrestlerName} dropped from your team.`);
+      fetchWrestlers();
+    } catch (err) {
+      console.error("Drop error:", err);
+      alert(`Error: ${err.message}`);
     }
   };
 
@@ -55,43 +99,20 @@ const AvailableWrestlers = () => {
     return 0;
   });
 
-  const buttonStyle = {
-    padding: "6px 12px",
-    border: "none",
-    borderRadius: "4px",
-    color: "#fff",
-    cursor: "pointer"
-  };
-
-  const getColumnStyle = (column, align = "left") => ({
-    borderBottom: "2px solid #ccc",
-    padding: "8px",
-    textAlign: align,
-    cursor: "pointer",
-    backgroundColor: sortBy === column ? "#f0f8ff" : "transparent",
-  });
-
-  const getCellStyle = (column, align = "left") => ({
-    borderBottom: "1px solid #eee",
-    padding: "8px",
-    textAlign: align,
-    backgroundColor: sortBy === column ? "#f9f9f9" : "transparent",
-  });
-
   return (
-    <div className="container">
+    <div className="aw-container">
       <h2>All Wrestlers</h2>
 
       <input
         type="text"
+        className="aw-search"
         placeholder="Search wrestlers..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{ marginBottom: "1rem", padding: "0.5rem", width: "100%" }}
       />
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label style={{ marginRight: "1rem" }}>
+      <div className="aw-controls">
+        <label>
           <input
             type="checkbox"
             checked={showOnlyAvailable}
@@ -99,27 +120,25 @@ const AvailableWrestlers = () => {
           />
           {" "}Show only free agents
         </label>
-        <span style={{ fontStyle: "italic" }}>Click a column header to sort</span>
+        <span className="aw-hint">Click a column header to sort</span>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table className="aw-table">
         <thead>
           <tr>
-            <th style={getColumnStyle("wrestler_name")} onClick={() => handleSort("wrestler_name")}>
+            <th onClick={() => handleSort("wrestler_name")}>
               Wrestler Name {sortBy === "wrestler_name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
             </th>
-            <th style={getColumnStyle("brand")} onClick={() => handleSort("brand")}>
+            <th onClick={() => handleSort("brand")}>
               Brand {sortBy === "brand" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
             </th>
-            <th style={getColumnStyle("points", "right")} onClick={() => handleSort("points")}>
+            <th onClick={() => handleSort("points")}>
               Points {sortBy === "points" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
             </th>
-            <th style={getColumnStyle("team_name")} onClick={() => handleSort("team_name")}>
+            <th onClick={() => handleSort("team_name")}>
               Team Name {sortBy === "team_name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
             </th>
-            <th style={{ borderBottom: "2px solid #ccc", padding: "8px" }}>
-              Action
-            </th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -129,14 +148,14 @@ const AvailableWrestlers = () => {
 
             return (
               <tr key={idx}>
-                <td style={getCellStyle("wrestler_name")}>
+                <td>
                   <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
                     {w.wrestler_name}
                   </Link>
                 </td>
-                <td style={getCellStyle("brand")}>{w.brand ?? "N/A"}</td>
-                <td style={getCellStyle("points", "right")}>{w.points ?? "N/A"}</td>
-                <td style={getCellStyle("team_name")}>
+                <td>{w.brand ?? "N/A"}</td>
+                <td>{w.points ?? "N/A"}</td>
+                <td>
                   {w.team_name ? (
                     <Link to={`/roster/${encodeURIComponent(w.team_name)}`}>
                       {w.team_name}
@@ -145,31 +164,15 @@ const AvailableWrestlers = () => {
                     "Free Agent"
                   )}
                 </td>
-                <td style={{ padding: "8px" }}>
+                <td>
                   {isFreeAgent ? (
-                    <button
-                      style={{ ...buttonStyle, backgroundColor: "green" }}
-                      onClick={() => handleAdd(w.wrestler_name)}
-                    >
-                      Add
-                    </button>
+                    <button className="aw-add" onClick={() => handleAdd(w.wrestler_name)}>Add</button>
                   ) : isMyTeam ? (
-                    <button
-                      style={{ ...buttonStyle, backgroundColor: "red" }}
-                      onClick={() => handleDrop(w.wrestler_name)}
-                    >
-                      Drop
-                    </button>
+                    <button className="aw-drop" onClick={() => handleDrop(w.wrestler_name)}>Drop</button>
                   ) : (
                     <Link
                       to={`/trade/${encodeURIComponent(w.team_name)}/${encodeURIComponent(w.wrestler_name)}`}
-                      style={{
-                        ...buttonStyle,
-                        backgroundColor: "blue",
-                        textDecoration: "none",
-                        display: "inline-block",
-                        textAlign: "center"
-                      }}
+                      className="aw-trade"
                     >
                       Propose Trade
                     </Link>

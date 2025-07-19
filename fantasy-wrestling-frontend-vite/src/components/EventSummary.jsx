@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import "./EventSummary.css";
 
 const EventSummary = () => {
   const [data, setData] = useState([]);
@@ -45,12 +46,10 @@ const EventSummary = () => {
       temp.sort((a, b) => {
         let aValue = a[sortConfig.key];
         let bValue = b[sortConfig.key];
-
         if (sortConfig.key === "event_date") {
           aValue = new Date(aValue);
           bValue = new Date(bValue);
         }
-
         if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
         return 0;
@@ -86,10 +85,10 @@ const EventSummary = () => {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="event-summary-container">
       <h2>Event Summary</h2>
 
-      <div style={{ marginBottom: "15px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+      <div className="event-summary-filters">
         <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
           <option value="">All Events</option>
           {uniqueValues("event_name").map((name, i) => (
@@ -126,16 +125,12 @@ const EventSummary = () => {
         </select>
       </div>
 
-      <table style={{ borderCollapse: "collapse", width: "100%" }}>
+      <table className="event-summary-table">
         <thead>
           <tr>
             {["event_name", "event_date", "wrestler_name", "team_name", "points", "description"].map((key) => (
-              <th
-                key={key}
-                onClick={() => handleSort(key)}
-                style={{ border: "1px solid #ccc", padding: "8px", cursor: "pointer", background: "#f0f0f0" }}
-              >
-                {key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+              <th key={key} onClick={() => handleSort(key)}>
+                {key.replace(/_/g, " ").replace(/\w/g, l => l.toUpperCase())}
                 {sortConfig.key === key ? (sortConfig.direction === "asc" ? " ▲" : " ▼") : ""}
               </th>
             ))}
@@ -144,22 +139,22 @@ const EventSummary = () => {
         <tbody>
           {paginated.map((row, i) => (
             <tr key={i}>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.event_name}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{formatDate(row.event_date)}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>
-                <Link to={`/wrestler/${encodeURIComponent(row.wrestler_name)}`} style={{ textDecoration: "none", color: "#007bff" }}>
+              <td>{row.event_name}</td>
+              <td>{formatDate(row.event_date)}</td>
+              <td>
+                <Link to={`/wrestler/${encodeURIComponent(row.wrestler_name)}`}>
                   {row.wrestler_name}
                 </Link>
               </td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.team_name}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.points}</td>
-              <td style={{ border: "1px solid #ddd", padding: "8px" }}>{row.description}</td>
+              <td>{row.team_name}</td>
+              <td>{row.points}</td>
+              <td>{row.description}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div style={{ marginTop: "15px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px" }}>
+      <div className="event-summary-pagination">
         <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</button>
         <span>Page {currentPage} of {totalPages}</span>
         <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</button>

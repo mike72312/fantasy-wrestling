@@ -1,6 +1,6 @@
-// src/components/WrestlerProfile.jsx
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import "./WrestlerProfile.css";
 
 const WrestlerProfile = () => {
   const { wrestler_name } = useParams();
@@ -48,25 +48,10 @@ const WrestlerProfile = () => {
     return 0;
   });
 
-  if (!wrestler) return <div>Loading...</div>;
-
-  const getColumnStyle = (column, align = "left") => ({
-    borderBottom: "2px solid #ccc",
-    padding: "8px",
-    textAlign: align,
-    cursor: column !== "team_name" ? "pointer" : "default",
-    backgroundColor: sortBy === column ? "#f0f8ff" : "transparent",
-  });
-
-  const getCellStyle = (column, align = "left") => ({
-    borderBottom: "1px solid #eee",
-    padding: "8px",
-    textAlign: align,
-    backgroundColor: sortBy === column ? "#f9f9f9" : "transparent",
-  });
+  if (!wrestler) return <div className="wrestler-profile-loading">Loading...</div>;
 
   return (
-    <div className="container">
+    <div className="wrestler-profile-container">
       <h2>{wrestler.wrestler_name}</h2>
       <p><strong>Brand:</strong> {wrestler.brand}</p>
       <p><strong>Current Team:</strong> {wrestler.team_name || "Free Agent"}</p>
@@ -78,23 +63,21 @@ const WrestlerProfile = () => {
         <p>No scoring history.</p>
       ) : (
         <>
-          <p style={{ fontStyle: "italic", marginBottom: "0.5rem" }}>
-            Click table headers to sort
-          </p>
+          <p className="wrestler-profile-note">Click table headers to sort</p>
 
-          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
+          <table className="wrestler-profile-table">
             <thead>
               <tr>
-                <th style={getColumnStyle("event_date")} onClick={() => handleSort("event_date")}>
+                <th onClick={() => handleSort("event_date")}>
                   Date {sortBy === "event_date" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
                 </th>
-                <th style={getColumnStyle("event_name")} onClick={() => handleSort("event_name")}>
+                <th onClick={() => handleSort("event_name")}>
                   Event {sortBy === "event_name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
                 </th>
-                <th style={getColumnStyle("team_name")}>
+                <th>
                   Team
                 </th>
-                <th style={getColumnStyle("points", "right")} onClick={() => handleSort("points")}>
+                <th onClick={() => handleSort("points")}>
                   Points {sortBy === "points" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
                 </th>
               </tr>
@@ -102,16 +85,10 @@ const WrestlerProfile = () => {
             <tbody>
               {sortedEvents.map((e, idx) => (
                 <tr key={idx}>
-                  <td style={getCellStyle("event_date")}>
-                    {new Date(e.event_date).toLocaleDateString()}
-                  </td>
-                  <td style={getCellStyle("event_name")}>{e.event_name}</td>
-                  <td style={getCellStyle("team_name")}>
-                    {e.team_name || "Free Agent"}
-                  </td>
-                  <td style={getCellStyle("points", "right")}>
-                    {e.points}
-                  </td>
+                  <td>{new Date(e.event_date).toLocaleDateString()}</td>
+                  <td>{e.event_name}</td>
+                  <td>{e.team_name || "Free Agent"}</td>
+                  <td>{e.points}</td>
                 </tr>
               ))}
             </tbody>

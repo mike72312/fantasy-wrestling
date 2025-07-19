@@ -1,5 +1,5 @@
-// src/components/TradeInbox.jsx
 import React, { useEffect, useState } from "react";
+import "./TradeInbox.css";
 
 const BASE_URL = "https://fantasy-wrestling-backend.onrender.com";
 
@@ -32,7 +32,6 @@ const TradeInbox = () => {
 
       if (!res.ok) throw new Error("Failed to respond");
 
-      // Refresh
       const updated = await fetch(`${BASE_URL}/api/trades`).then(r => r.json());
       const filtered = updated.filter(t =>
         t.offering_team?.toLowerCase() === teamNameLC ||
@@ -46,7 +45,7 @@ const TradeInbox = () => {
   };
 
   return (
-    <div className="container">
+    <div className="trade-inbox-container">
       <h2>Trade Inbox</h2>
       {trades.length === 0 ? (
         <p>No trades found.</p>
@@ -65,11 +64,11 @@ const TradeInbox = () => {
 
             {trade.status === "pending" &&
               trade.receiving_team.toLowerCase() === teamNameLC && (
-                <div>
-                  <button onClick={() => respondToTrade(trade.id, "accept")}>
+                <div className="trade-actions">
+                  <button className="btn-accept" onClick={() => respondToTrade(trade.id, "accept")}>
                     Accept
                   </button>
-                  <button onClick={() => respondToTrade(trade.id, "reject")}>
+                  <button className="btn-reject" onClick={() => respondToTrade(trade.id, "reject")}>
                     Reject
                   </button>
                 </div>

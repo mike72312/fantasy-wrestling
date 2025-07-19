@@ -1,0 +1,49 @@
+.trade-center-container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 20px;
+}
+
+.trade-form {
+  margin-bottom: 2rem;
+}
+
+.trade-form fieldset {
+  border: 1px solid #ccc;
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.trade-form label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+.trade-form input,
+.trade-form select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.trade-status {
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.trade-history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.trade-history-table th,
+.trade-history-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.trade-history-table th {
+  background-color: #f4f4f4;
+}

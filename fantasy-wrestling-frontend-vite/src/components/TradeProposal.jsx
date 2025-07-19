@@ -1,6 +1,6 @@
-// src/components/TradeProposal.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import "./TradeProposal.css";
 
 const BASE_URL = "https://fantasy-wrestling-backend.onrender.com";
 
@@ -14,7 +14,6 @@ const TradeProposal = () => {
   const [opponentRoster, setOpponentRoster] = useState([]);
   const [offered, setOffered] = useState([]);
   const [requested, setRequested] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -83,16 +82,15 @@ const TradeProposal = () => {
     }
   };
 
-  if (loading) return <div className="container"><p>Loading rosters...</p></div>;
+  if (loading) return <div className="trade-proposal-container"><p>Loading rosters...</p></div>;
 
   return (
-    <div className="container">
+    <div className="trade-proposal-container">
       <h2>Trade Proposal</h2>
       <p>You ({userTeam}) are proposing a trade to {opponentTeam}</p>
 
-      <div style={{ display: "flex", gap: "2rem", justifyContent: "space-between", flexWrap: "wrap" }}>
-        {/* Your Team */}
-        <div style={{ flex: 1 }}>
+      <div className="trade-proposal-columns">
+        <div className="trade-proposal-column">
           <h3>{userTeam} (Your Team)</h3>
           <table className="wrestler-table">
             <thead>
@@ -118,8 +116,7 @@ const TradeProposal = () => {
           </table>
         </div>
 
-        {/* Opponent Team */}
-        <div style={{ flex: 1 }}>
+        <div className="trade-proposal-column">
           <h3>{opponentTeam}</h3>
           <table className="wrestler-table">
             <thead>
@@ -146,7 +143,7 @@ const TradeProposal = () => {
         </div>
       </div>
 
-      <div style={{ marginTop: "2rem" }}>
+      <div className="trade-summary">
         <h4>Summary</h4>
         <p>
           <strong>You're offering:</strong> {offered.join(", ") || "None"}

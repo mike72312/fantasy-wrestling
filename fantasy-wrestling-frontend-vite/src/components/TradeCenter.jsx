@@ -1,7 +1,7 @@
-// src/components/TradeCenter.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
+import "./TradeCenter.css";
 
 const TradeCenter = () => {
   const location = useLocation();
@@ -101,7 +101,7 @@ const TradeCenter = () => {
   };
 
   return (
-    <div className="container">
+    <div className="trade-center-container">
       <h2>Trade Center</h2>
 
       <form onSubmit={submitTrade} className="trade-form">
@@ -136,10 +136,10 @@ const TradeCenter = () => {
         </fieldset>
       </form>
 
-      {status && <p>{status}</p>}
+      {status && <p className="trade-status">{status}</p>}
 
       <h3>Past Trades</h3>
-      <table>
+      <table className="trade-history-table">
         <thead>
           <tr>
             <th>Date</th>

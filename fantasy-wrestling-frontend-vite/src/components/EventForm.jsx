@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import "./EventForm.css";
 
 const EventForm = () => {
   const [eventName, setEventName] = useState("");
@@ -10,7 +11,6 @@ const EventForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     setStatus("Uploading...");
 
     let textContent = eventText;
@@ -19,7 +19,6 @@ const EventForm = () => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         textContent = e.target.result;
-
         await submitImport(textContent);
       };
       reader.readAsText(file);
@@ -48,9 +47,9 @@ const EventForm = () => {
   };
 
   return (
-    <div className="container">
+    <div className="eventform-container">
       <h2>Import Event</h2>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="eventform-form">
         <div>
           <label>Event Name:</label>
           <input type="text" value={eventName} onChange={(e) => setEventName(e.target.value)} required />
@@ -66,7 +65,6 @@ const EventForm = () => {
             value={eventText}
             onChange={(e) => setEventText(e.target.value)}
             placeholder="Paste the Matches and Bonus Points here..."
-            style={{ width: "100%", fontFamily: "monospace" }}
           />
         </div>
         <div>
@@ -75,7 +73,7 @@ const EventForm = () => {
         </div>
         <button type="submit">Submit</button>
       </form>
-      {status && <p style={{ marginTop: "1rem" }}>{status}</p>}
+      {status && <p className="eventform-status">{status}</p>}
     </div>
   );
 };

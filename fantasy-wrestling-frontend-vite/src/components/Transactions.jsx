@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import "./Transactions.css";
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -6,21 +7,33 @@ const Transactions = () => {
   useEffect(() => {
     fetch("https://fantasy-wrestling-backend.onrender.com/api/transactions")
       .then((res) => res.json())
-      .then((data) => setTransactions(data))
-      .catch((err) => console.error("❌ Error fetching transactions:", err));
+      .then(setTransactions)
+      .catch((err) => console.error("Error loading transactions:", err));
   }, []);
 
   return (
-    <div className="container">
-      <h2>Recent Transactions</h2>
-      <ul>
-        {transactions.map((t, idx) => (
-          <li key={idx}>
-            {t.timestamp.split("T")[0]} — {t.team_name} {t.action}ed{" "}
-            {t.wrestler_name}
-          </li>
-        ))}
-      </ul>
+    <div className="transactions-container">
+      <h2>Transactions</h2>
+      <table className="transactions-table">
+        <thead>
+          <tr>
+            <th>Wrestler</th>
+            <th>Team</th>
+            <th>Action</th>
+            <th>Timestamp</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((tx, index) => (
+            <tr key={index}>
+              <td>{tx.wrestler_name}</td>
+              <td>{tx.team_name}</td>
+              <td>{tx.action}</td>
+              <td>{new Date(tx.timestamp).toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

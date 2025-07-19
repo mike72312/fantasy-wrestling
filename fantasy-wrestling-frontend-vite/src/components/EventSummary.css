@@ -1,0 +1,37 @@
+.event-summary-container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+.event-summary-filters {
+  margin-bottom: 15px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.event-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.event-summary-table th,
+.event-summary-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+}
+
+.event-summary-table th {
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.event-summary-pagination {
+  margin-top: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
