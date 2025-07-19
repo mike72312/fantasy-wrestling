@@ -1,0 +1,70 @@
+.roster-container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.roster-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.roster-table th,
+.roster-table td {
+  padding: 12px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+.roster-table th {
+  background-color: #f4f4f4;
+  cursor: pointer;
+}
+
+.roster-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.roster-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+.own-team-row {
+  font-weight: bold;
+  background-color: #eaffea;
+}
+
+.drop-btn {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.starter-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  margin-left: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.trade-btn {
+  background-color: #17a2b8;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 5px;
+  text-decoration: none;
+}
+
+.empty-roster {
+  text-align: center;
+  margin-top: 2rem;
+  font-style: italic;
+  color: #888;
+}
