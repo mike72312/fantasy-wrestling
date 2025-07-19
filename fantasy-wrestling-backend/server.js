@@ -547,6 +547,34 @@ app.get("/api/allWrestlers", async (req, res) => {
   }
 });
 
+// Get all transactions
+app.get("/api/transactions", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM transactions ORDER BY timestamp DESC");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching transactions:", err);
+    res.status(500).json({ error: "Failed to fetch transactions." });
+  }
+});
+
+// Get standings
+app.get("/api/standings", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT t.team_name, COALESCE(SUM(w.points), 0) AS score
+      FROM teams t
+      LEFT JOIN wrestlers w ON t.id = w.team_id AND w.starter = true
+      GROUP BY t.team_name
+      ORDER BY score DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching standings:", err);
+    res.status(500).json({ error: "Failed to fetch standings." });
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
