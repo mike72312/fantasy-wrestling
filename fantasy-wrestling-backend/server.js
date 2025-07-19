@@ -361,7 +361,7 @@ app.get("/api/trades", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch trades." });
   }
 });
-
+//Import Event
 app.post("/api/importEvent", async (req, res) => {
   const { rawText, event_name, event_date } = req.body;
 
@@ -370,7 +370,7 @@ app.post("/api/importEvent", async (req, res) => {
   }
 
   try {
-    // Convert event date to 8:00 PM Eastern Time
+    // Force the event time to 8:00 PM Eastern Time
     const eventDateTime = new Date(
       new Date(`${event_date}T20:00:00`).toLocaleString("en-US", {
         timeZone: "America/New_York",
@@ -422,7 +422,7 @@ app.post("/api/importEvent", async (req, res) => {
     for (const detail of eventDetails) {
       const { name, points, description } = detail;
 
-      // Get wrestler ID
+      // Lookup wrestler ID
       const wrestlerRes = await pool.query(
         "SELECT id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
         [name.toLowerCase()]
@@ -431,7 +431,7 @@ app.post("/api/importEvent", async (req, res) => {
 
       const wrestlerId = wrestlerRes.rows[0].id;
 
-      // Get most recent roster_change BEFORE or AT event time
+      // Check roster_changes for most recent status at or before event time
       const snapshotRes = await pool.query(
         `SELECT team_id, is_starter
          FROM roster_changes
@@ -441,19 +441,32 @@ app.post("/api/importEvent", async (req, res) => {
         [wrestlerId, eventDateTime]
       );
 
-      if (snapshotRes.rows.length === 0) continue;
+      let teamId, isStarter;
 
-      const { team_id, is_starter } = snapshotRes.rows[0];
+      if (snapshotRes.rows.length > 0) {
+        teamId = snapshotRes.rows[0].team_id;
+        isStarter = snapshotRes.rows[0].is_starter;
+      } else {
+        // Fallback to current status in wrestlers table
+        const fallbackRes = await pool.query(
+          "SELECT team_id, starter FROM wrestlers WHERE id = $1",
+          [wrestlerId]
+        );
+        if (fallbackRes.rows.length === 0) continue;
 
-      if (!is_starter) continue; // Only award points to starters
+        teamId = fallbackRes.rows[0].team_id;
+        isStarter = fallbackRes.rows[0].starter;
+      }
 
-      // Award points to wrestler and insert event entry
+      if (!isStarter) continue; // Only score points for starters
+
+      // Update points and insert event history
       await pool.query("UPDATE wrestlers SET points = points + $1 WHERE id = $2", [points, wrestlerId]);
 
       await pool.query(
         `INSERT INTO event_points (wrestler_id, team_id, event_name, event_date, points, description)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [wrestlerId, team_id, event_name, event_date, points, description]
+        [wrestlerId, teamId, event_name, event_date, points, description]
       );
 
       summary.push({ wrestler: name, points, description });
