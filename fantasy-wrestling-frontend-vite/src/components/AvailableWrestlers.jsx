@@ -1,5 +1,4 @@
 // src/components/AvailableWrestlers.jsx
-// src/components/AvailableWrestlers.jsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -26,70 +25,12 @@ const AvailableWrestlers = () => {
     fetchWrestlers();
   }, []);
 
-  const handleAdd = async (wrestlerName) => {
-    if (!userTeam) return alert("No team selected.");
-
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentHour = now.getHours();
-    const restrictedHours = [
-      { day: 1, start: 20, end: 23 },
-      { day: 5, start: 20, end: 23 },
-      { day: 6, start: 20, end: 23 },
-    ];
-    const isRestricted = restrictedHours.some(
-      (r) => r.day === currentDay && currentHour >= r.start && currentHour < r.end
-    );
-    if (isRestricted) {
-      return alert("Add/drop is not allowed during event hours (Mon/Fri/Sat 8–11pm ET).");
-    }
-
-    try {
-      const rosterRes = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${userTeam}`);
-      const roster = await rosterRes.json();
-
-      if (roster.length >= 8) {
-        alert("You already have 8 wrestlers. Drop someone before adding a new one.");
-        return;
-      }
-    } catch (err) {
-      console.error("Error checking team size:", err);
-      alert("Could not verify team size.");
-      return;
-    }
-
-    try {
-      const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/addWrestler", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamName: userTeam, wrestlerName }),
-      });
-
-      if (!response.ok) throw new Error("Add failed");
-
-      fetchWrestlers();
-    } catch (err) {
-      console.error("❌ Error adding wrestler:", err);
-      alert("Failed to add wrestler.");
-    }
-  };
-
-  const handleDrop = async (wrestlerName) => {
-    if (!userTeam) return alert("No team selected.");
-
-    try {
-      const response = await fetch("https://fantasy-wrestling-backend.onrender.com/api/dropWrestler", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamName: userTeam, wrestlerName }),
-      });
-
-      if (!response.ok) throw new Error("Drop failed");
-
-      fetchWrestlers();
-    } catch (err) {
-      console.error("❌ Error dropping wrestler:", err);
-      alert("Failed to drop wrestler.");
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder("desc");
     }
   };
 
@@ -98,12 +39,20 @@ const AvailableWrestlers = () => {
     .filter((w) => (showOnlyAvailable ? !w.team_name : true));
 
   const sortedWrestlers = [...filteredWrestlers].sort((a, b) => {
-    const aVal = a[sortBy] ?? "";
-    const bVal = b[sortBy] ?? "";
-    if (typeof aVal === "string") {
-      return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+
+    if (sortBy === "points") {
+      aVal = Number(aVal) || 0;
+      bVal = Number(bVal) || 0;
+    } else {
+      aVal = aVal?.toString().toLowerCase() || "";
+      bVal = bVal?.toString().toLowerCase() || "";
     }
-    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
   });
 
   const buttonStyle = {
@@ -113,6 +62,21 @@ const AvailableWrestlers = () => {
     color: "#fff",
     cursor: "pointer"
   };
+
+  const getColumnStyle = (column, align = "left") => ({
+    borderBottom: "2px solid #ccc",
+    padding: "8px",
+    textAlign: align,
+    cursor: "pointer",
+    backgroundColor: sortBy === column ? "#f0f8ff" : "transparent",
+  });
+
+  const getCellStyle = (column, align = "left") => ({
+    borderBottom: "1px solid #eee",
+    padding: "8px",
+    textAlign: align,
+    backgroundColor: sortBy === column ? "#f9f9f9" : "transparent",
+  });
 
   return (
     <div className="container">
@@ -127,16 +91,7 @@ const AvailableWrestlers = () => {
       />
 
       <div style={{ marginBottom: "1rem" }}>
-        <label>Sort by: </label>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="wrestler_name">Name</option>
-          <option value="points">Points</option>
-        </select>
-        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-          <option value="desc">Descending</option>
-          <option value="asc">Ascending</option>
-        </select>
-        <label style={{ marginLeft: "1rem" }}>
+        <label style={{ marginRight: "1rem" }}>
           <input
             type="checkbox"
             checked={showOnlyAvailable}
@@ -144,16 +99,27 @@ const AvailableWrestlers = () => {
           />
           {" "}Show only free agents
         </label>
+        <span style={{ fontStyle: "italic" }}>Click a column header to sort</span>
       </div>
 
-      <table className="wrestler-table">
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th>Wrestler Name</th>
-            <th>Brand</th>
-            <th>Points</th>
-            <th>Team Name</th>
-            <th>Action</th>
+            <th style={getColumnStyle("wrestler_name")} onClick={() => handleSort("wrestler_name")}>
+              Wrestler Name {sortBy === "wrestler_name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+            </th>
+            <th style={getColumnStyle("brand")} onClick={() => handleSort("brand")}>
+              Brand {sortBy === "brand" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+            </th>
+            <th style={getColumnStyle("points", "right")} onClick={() => handleSort("points")}>
+              Points {sortBy === "points" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+            </th>
+            <th style={getColumnStyle("team_name")} onClick={() => handleSort("team_name")}>
+              Team Name {sortBy === "team_name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+            </th>
+            <th style={{ borderBottom: "2px solid #ccc", padding: "8px" }}>
+              Action
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -163,14 +129,14 @@ const AvailableWrestlers = () => {
 
             return (
               <tr key={idx}>
-                <td>
+                <td style={getCellStyle("wrestler_name")}>
                   <Link to={`/wrestler/${encodeURIComponent(w.wrestler_name)}`}>
                     {w.wrestler_name}
                   </Link>
                 </td>
-                <td>{w.brand ?? "N/A"}</td>
-                <td>{w.points ?? "N/A"}</td>
-                <td>
+                <td style={getCellStyle("brand")}>{w.brand ?? "N/A"}</td>
+                <td style={getCellStyle("points", "right")}>{w.points ?? "N/A"}</td>
+                <td style={getCellStyle("team_name")}>
                   {w.team_name ? (
                     <Link to={`/roster/${encodeURIComponent(w.team_name)}`}>
                       {w.team_name}
@@ -179,7 +145,7 @@ const AvailableWrestlers = () => {
                     "Free Agent"
                   )}
                 </td>
-                <td>
+                <td style={{ padding: "8px" }}>
                   {isFreeAgent ? (
                     <button
                       style={{ ...buttonStyle, backgroundColor: "green" }}
@@ -197,7 +163,13 @@ const AvailableWrestlers = () => {
                   ) : (
                     <Link
                       to={`/trade/${encodeURIComponent(w.team_name)}/${encodeURIComponent(w.wrestler_name)}`}
-                      style={{ ...buttonStyle, backgroundColor: "blue", textDecoration: "none", display: "inline-block", textAlign: "center" }}
+                      style={{
+                        ...buttonStyle,
+                        backgroundColor: "blue",
+                        textDecoration: "none",
+                        display: "inline-block",
+                        textAlign: "center"
+                      }}
                     >
                       Propose Trade
                     </Link>

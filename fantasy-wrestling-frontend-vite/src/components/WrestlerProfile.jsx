@@ -19,22 +19,50 @@ const WrestlerProfile = () => {
       .then(setEvents);
   }, [wrestler_name]);
 
-  if (!wrestler) return <div>Loading...</div>;
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder("desc");
+    }
+  };
 
   const sortedEvents = [...events].sort((a, b) => {
-    const aVal = a[sortBy];
-    const bVal = b[sortBy];
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+
     if (sortBy === "event_date") {
-      return sortOrder === "asc"
-        ? new Date(aVal) - new Date(bVal)
-        : new Date(bVal) - new Date(aVal);
+      aVal = new Date(aVal);
+      bVal = new Date(bVal);
+    } else if (sortBy === "points") {
+      aVal = Number(aVal) || 0;
+      bVal = Number(bVal) || 0;
+    } else {
+      aVal = aVal?.toString().toLowerCase() || "";
+      bVal = bVal?.toString().toLowerCase() || "";
     }
-    if (typeof aVal === "string") {
-      return sortOrder === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
-    }
-    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+
+    if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  if (!wrestler) return <div>Loading...</div>;
+
+  const getColumnStyle = (column, align = "left") => ({
+    borderBottom: "2px solid #ccc",
+    padding: "8px",
+    textAlign: align,
+    cursor: column !== "team_name" ? "pointer" : "default",
+    backgroundColor: sortBy === column ? "#f0f8ff" : "transparent",
+  });
+
+  const getCellStyle = (column, align = "left") => ({
+    borderBottom: "1px solid #eee",
+    padding: "8px",
+    textAlign: align,
+    backgroundColor: sortBy === column ? "#f9f9f9" : "transparent",
   });
 
   return (
@@ -50,45 +78,44 @@ const WrestlerProfile = () => {
         <p>No scoring history.</p>
       ) : (
         <>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Sort by: </label>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="event_date">Date</option>
-              <option value="event_name">Event</option>
-              <option value="points">Points</option>
-            </select>
-            <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-              <option value="desc">Descending</option>
-              <option value="asc">Ascending</option>
-            </select>
-          </div>
+          <p style={{ fontStyle: "italic", marginBottom: "0.5rem" }}>
+            Click table headers to sort
+          </p>
 
-<table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
-  <thead>
-    <tr>
-      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "left" }}>Date</th>
-      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "left" }}>Event</th>
-      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "left" }}>Team</th>
-      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "right" }}>Points</th>
-    </tr>
-  </thead>
-  <tbody>
-    {sortedEvents.map((e, idx) => (
-      <tr key={idx}>
-        <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
-          {new Date(e.event_date).toLocaleDateString()}
-        </td>
-        <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{e.event_name}</td>
-        <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
-          {e.team_name || "Free Agent"}
-        </td>
-        <td style={{ borderBottom: "1px solid #eee", padding: "8px", textAlign: "right" }}>
-          {e.points}
-        </td>
-      </tr>
-    ))}
-  </tbody>
-</table>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
+            <thead>
+              <tr>
+                <th style={getColumnStyle("event_date")} onClick={() => handleSort("event_date")}>
+                  Date {sortBy === "event_date" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                </th>
+                <th style={getColumnStyle("event_name")} onClick={() => handleSort("event_name")}>
+                  Event {sortBy === "event_name" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                </th>
+                <th style={getColumnStyle("team_name")}>
+                  Team
+                </th>
+                <th style={getColumnStyle("points", "right")} onClick={() => handleSort("points")}>
+                  Points {sortBy === "points" ? (sortOrder === "asc" ? "▲" : "▼") : ""}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedEvents.map((e, idx) => (
+                <tr key={idx}>
+                  <td style={getCellStyle("event_date")}>
+                    {new Date(e.event_date).toLocaleDateString()}
+                  </td>
+                  <td style={getCellStyle("event_name")}>{e.event_name}</td>
+                  <td style={getCellStyle("team_name")}>
+                    {e.team_name || "Free Agent"}
+                  </td>
+                  <td style={getCellStyle("points", "right")}>
+                    {e.points}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </>
       )}
     </div>
