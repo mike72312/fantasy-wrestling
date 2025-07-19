@@ -17,10 +17,11 @@ const pool = new Pool({
 });
 
 // Shared restriction logic
-const isRestrictedTime = async () => {
-  const now = new Date();
-  const day = now.getDay();
-  const hour = now.getHours();
+  const isRestrictedTime = async () => {
+  const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York" });
+  const local = new Date(now);
+  const day = local.getDay();
+  const hour = local.getHours();
 
   try {
     const result = await pool.query(`
