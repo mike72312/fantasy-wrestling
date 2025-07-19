@@ -175,6 +175,10 @@ app.get("/api/roster/:teamName", async (req, res) => {
 // Drop a wrestler from a team
 app.post("/api/dropWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
+  
+  if (await isRestrictedTime()) {
+    return res.status(403).json({ error: "Cannot drop wrestler during restricted hours." });
+  }
 
   try {
     const teamIdResult = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
@@ -214,10 +218,31 @@ app.post("/api/setStarterStatus", async (req, res) => {
   }
 
   try {
+    // Update starter status
     await pool.query(
       "UPDATE wrestlers SET starter = $1 WHERE LOWER(wrestler_name) = LOWER($2)",
       [isStarter, wrestlerName.toLowerCase()]
     );
+
+    // Get wrestler ID and team ID
+    const result = await pool.query(
+      "SELECT id, team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+      [wrestlerName.toLowerCase()]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Wrestler not found" });
+    }
+
+    const { id: wrestlerId, team_id: teamId } = result.rows[0];
+
+    // Log the change in roster_changes
+    await pool.query(
+      `INSERT INTO roster_changes (wrestler_id, team_id, is_starter)
+       VALUES ($1, $2, $3)`,
+      [wrestlerId, teamId, isStarter]
+    );
+
     res.json({ message: `Wrestler ${wrestlerName} set to ${isStarter ? "starter" : "bench"}` });
   } catch (err) {
     console.error("Error updating starter status:", err);
