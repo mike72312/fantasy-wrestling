@@ -362,35 +362,6 @@ app.get("/api/trades", async (req, res) => {
   }
 });
 
-// Get all transactions
-app.get("/api/transactions", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM transactions ORDER BY timestamp DESC");
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching transactions:", err);
-    res.status(500).json({ error: "Failed to fetch transactions." });
-  }
-});
-
-// Get standings
-app.get("/api/standings", async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT t.team_name, COALESCE(SUM(w.points), 0) AS score
-      FROM teams t
-      LEFT JOIN wrestlers w ON t.id = w.team_id AND w.starter = true
-      GROUP BY t.team_name
-      ORDER BY score DESC;
-    `);
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching standings:", err);
-    res.status(500).json({ error: "Failed to fetch standings." });
-  }
-});
-
-// Import event results and update points from raw text
 app.post("/api/importEvent", async (req, res) => {
   const { rawText, event_name, event_date } = req.body;
 
@@ -399,7 +370,14 @@ app.post("/api/importEvent", async (req, res) => {
   }
 
   try {
-    const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+    // Convert event date to 8:00 PM Eastern Time
+    const eventDateTime = new Date(
+      new Date(`${event_date}T20:00:00`).toLocaleString("en-US", {
+        timeZone: "America/New_York",
+      })
+    );
+
+    const lines = rawText.split("\n").map((l) => l.trim()).filter(Boolean);
     let mode = null;
     const eventDetails = [];
 
@@ -440,17 +418,36 @@ app.post("/api/importEvent", async (req, res) => {
     }
 
     const summary = [];
+
     for (const detail of eventDetails) {
       const { name, points, description } = detail;
 
+      // Get wrestler ID
       const wrestlerRes = await pool.query(
-        "SELECT id, team_id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+        "SELECT id FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
         [name.toLowerCase()]
       );
       if (wrestlerRes.rows.length === 0) continue;
 
-      const { id: wrestlerId, team_id } = wrestlerRes.rows[0];
+      const wrestlerId = wrestlerRes.rows[0].id;
 
+      // Get most recent roster_change BEFORE or AT event time
+      const snapshotRes = await pool.query(
+        `SELECT team_id, is_starter
+         FROM roster_changes
+         WHERE wrestler_id = $1 AND changed_at <= $2
+         ORDER BY changed_at DESC
+         LIMIT 1`,
+        [wrestlerId, eventDateTime]
+      );
+
+      if (snapshotRes.rows.length === 0) continue;
+
+      const { team_id, is_starter } = snapshotRes.rows[0];
+
+      if (!is_starter) continue; // Only award points to starters
+
+      // Award points to wrestler and insert event entry
       await pool.query("UPDATE wrestlers SET points = points + $1 WHERE id = $2", [points, wrestlerId]);
 
       await pool.query(
@@ -465,7 +462,7 @@ app.post("/api/importEvent", async (req, res) => {
     res.json({
       message: "✅ Event imported and points updated",
       updated: summary.length,
-      details: summary
+      details: summary,
     });
   } catch (err) {
     console.error("❌ Error processing event:", err);
