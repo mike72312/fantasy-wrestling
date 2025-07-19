@@ -26,6 +26,7 @@
 .event-summary-table th {
   background: #f0f0f0;
   cursor: pointer;
+  text-transform: capitalize;
 }
 
 .event-summary-pagination {
