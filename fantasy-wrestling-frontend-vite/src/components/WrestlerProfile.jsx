@@ -69,7 +69,7 @@ const WrestlerProfile = () => {
     <div className="container">
       <h2>{wrestler.wrestler_name}</h2>
       <p><strong>Brand:</strong> {wrestler.brand}</p>
-      <p><strong>Current Team:</strong> {wrestler.team_id || "Free Agent"}</p>
+      <p><strong>Current Team:</strong> {wrestler.team_name || "Free Agent"}</p>
       <p><strong>Total Points:</strong> {wrestler.points}</p>
 
       <h3>Event Points History</h3>
