@@ -120,8 +120,12 @@ app.get("/api/roster/:teamName", async (req, res) => {
 });
 
 // Add a wrestler to a team
-app.post("/api/addWrestler", async (req, res) => {
+  app.post("/api/addWrestler", async (req, res) => {
   const { teamName, wrestlerName } = req.body;
+
+  if (await isRestrictedTime()) {
+    return res.status(403).json({ error: "Cannot add wrestler during restricted hours." });
+  }
 
   try {
     const teamRes = await pool.query("SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)", [teamName]);
@@ -145,8 +149,8 @@ app.post("/api/addWrestler", async (req, res) => {
       "SELECT COUNT(*) FROM wrestlers WHERE team_id = $1",
       [teamId]
     );
-    if (parseInt(rosterCountRes.rows[0].count) >= 8) {
-      return res.status(403).json({ error: "Team already has 8 wrestlers" });
+    if (parseInt(rosterCountRes.rows[0].count) >= 9) {
+      return res.status(403).json({ error: "Team already has 9 wrestlers" });
     }
 
     await pool.query(

@@ -1,4 +1,3 @@
-// src/components/TeamRoster.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 
@@ -25,7 +24,15 @@ const TeamRoster = () => {
         body: JSON.stringify({ teamName, wrestlerName }),
       });
 
-      if (!res.ok) throw new Error("Drop failed");
+      if (!res.ok) {
+        const data = await res.json();
+        if (res.status === 403) {
+          alert(data.error || "Restricted hours: Cannot drop a wrestler right now.");
+        } else {
+          alert(data.error || "Failed to drop wrestler.");
+        }
+        return;
+      }
 
       setteamroster(teamroster.filter((w) => w.wrestler_name !== wrestlerName));
     } catch (err) {
@@ -38,8 +45,8 @@ const TeamRoster = () => {
     try {
       if (newStatus) {
         const starterCount = teamroster.filter((w) => w.starter).length;
-        if (starterCount >= 5) {
-          alert("You already have 5 starters. Move someone to the bench before promoting another.");
+        if (starterCount >= 6) {
+          alert("You already have 6 starters. Move someone to the bench before promoting another.");
           return;
         }
       }
@@ -52,7 +59,11 @@ const TeamRoster = () => {
 
       if (!res.ok) {
         const error = await res.json();
-        alert(error.error || "Error updating starter status");
+        if (res.status === 403) {
+          alert(error.error || "Restricted hours: Cannot change starter status.");
+        } else {
+          alert(error.error || "Error updating starter status");
+        }
         return;
       }
 
