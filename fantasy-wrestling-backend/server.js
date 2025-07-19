@@ -394,7 +394,7 @@ app.post("/api/importEvent", async (req, res) => {
           eventDetails.push({ name, points, description });
         }
       } else if (mode === "bonus") {
-        const bonusRegex = /^(.+?) — (\\d+) pts — (.+)$/i;
+        const bonusRegex = /^(.+?) [-—] (\d+) pts [-—] (.+)$/i;
         const match = normalized.match(bonusRegex);
         if (match) {
           const name = match[1].trim();
