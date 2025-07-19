@@ -82,6 +82,15 @@ const TeamRoster = () => {
     }
   };
 
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(key);
+      setSortOrder("asc");
+    }
+  };
+
   const sortedRoster = [...teamroster].sort((a, b) => {
     const aVal = a[sortBy];
     const bVal = b[sortBy];
@@ -97,26 +106,14 @@ const TeamRoster = () => {
     <div className="container">
       <h2>{teamName}'s Roster</h2>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label>Sort by: </label>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="wrestler_name">Name</option>
-          <option value="points">Points</option>
-        </select>
-        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select>
-      </div>
-
       {sortedRoster.length === 0 ? (
         <p>Roster is empty.</p>
       ) : (
         <table className="roster-table" border="1" cellPadding="8">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Points</th>
+              <th onClick={() => handleSort("wrestler_name")}>Name</th>
+              <th onClick={() => handleSort("points")}>Points</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
