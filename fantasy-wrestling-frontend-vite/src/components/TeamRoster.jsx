@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import "./TeamRoster.css"; // 👈 Make sure to create and include this CSS file
 
 const TeamRoster = () => {
   const { teamName } = useParams();
@@ -26,11 +27,7 @@ const TeamRoster = () => {
 
       if (!res.ok) {
         const data = await res.json();
-        if (res.status === 403) {
-          alert(data.error || "Restricted hours: Cannot drop a wrestler right now.");
-        } else {
-          alert(data.error || "Failed to drop wrestler.");
-        }
+        alert(data.error || "Drop failed.");
         return;
       }
 
@@ -59,11 +56,7 @@ const TeamRoster = () => {
 
       if (!res.ok) {
         const error = await res.json();
-        if (res.status === 403) {
-          alert(error.error || "Restricted hours: Cannot change starter status.");
-        } else {
-          alert(error.error || "Error updating starter status");
-        }
+        alert(error.error || "Error updating starter status");
         return;
       }
 
@@ -75,48 +68,53 @@ const TeamRoster = () => {
     }
   };
 
+  const toggleSort = (key) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(key);
+      setSortOrder("asc");
+    }
+  };
+
   const sortedRoster = [...teamroster].sort((a, b) => {
     const aVal = a[sortBy];
     const bVal = b[sortBy];
+
     if (typeof aVal === "string") {
       return sortOrder === "asc"
         ? aVal.localeCompare(bVal)
         : bVal.localeCompare(aVal);
     }
-    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+
+    return sortOrder === "asc"
+      ? Number(aVal) - Number(bVal)
+      : Number(bVal) - Number(aVal);
   });
 
   return (
-    <div className="container">
+    <div className="roster-container">
       <h2>{teamName}'s Roster</h2>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <label>Sort by: </label>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-          <option value="wrestler_name">Name</option>
-          <option value="points">Points</option>
-        </select>
-        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-          <option value="asc">Ascending</option>
-          <option value="desc">Descending</option>
-        </select>
-      </div>
-
       {sortedRoster.length === 0 ? (
-        <p>Roster is empty.</p>
+        <p className="empty-roster">Roster is empty.</p>
       ) : (
-        <table className="roster-table" border="1" cellPadding="8">
+        <table className="roster-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Points</th>
+              <th onClick={() => toggleSort("wrestler_name")}>
+                Name {sortBy === "wrestler_name" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+              </th>
+              <th onClick={() => toggleSort("points")}>
+                Points {sortBy === "points" ? (sortOrder === "asc" ? "↑" : "↓") : ""}
+              </th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {sortedRoster.map((wrestler, i) => (
-              <tr key={i}>
+              <tr key={i} className={userTeam === teamName.toLowerCase() ? "own-team-row" : ""}>
                 <td>
                   <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
                     {wrestler.wrestler_name}
@@ -127,15 +125,18 @@ const TeamRoster = () => {
                 <td>
                   {userTeam === teamName.toLowerCase() ? (
                     <>
-                      <button onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>{" "}
-                      <button onClick={() => handleToggleStarter(wrestler.wrestler_name, !wrestler.starter)}>
+                      <button className="drop-btn" onClick={() => handleDrop(wrestler.wrestler_name)}>Drop</button>{" "}
+                      <button
+                        className="starter-btn"
+                        onClick={() => handleToggleStarter(wrestler.wrestler_name, !wrestler.starter)}
+                      >
                         Set {wrestler.starter ? "Bench" : "Starter"}
                       </button>
                     </>
                   ) : (
                     <Link
                       to={`/trade/${teamName}/${encodeURIComponent(wrestler.wrestler_name)}`}
-                      className="propose-trade-btn"
+                      className="trade-btn"
                     >
                       Propose Trade
                     </Link>
