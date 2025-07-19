@@ -7,6 +7,7 @@ const EventSummary = () => {
   const [eventFilter, setEventFilter] = useState("");
   const [wrestlerFilter, setWrestlerFilter] = useState("");
   const [descFilter, setDescFilter] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
   // Pagination
@@ -32,6 +33,7 @@ const EventSummary = () => {
     if (eventFilter) temp = temp.filter(row => row.event_name === eventFilter);
     if (wrestlerFilter) temp = temp.filter(row => row.wrestler_name === wrestlerFilter);
     if (descFilter) temp = temp.filter(row => row.description === descFilter);
+    if (teamFilter) temp = temp.filter(row => row.team_name === teamFilter);
 
     if (sortConfig.key) {
       temp.sort((a, b) => {
@@ -51,7 +53,7 @@ const EventSummary = () => {
 
     setFiltered(temp);
     setCurrentPage(1); // reset pagination on filter change
-  }, [eventFilter, wrestlerFilter, descFilter, sortConfig, data]);
+  }, [eventFilter, wrestlerFilter, descFilter, teamFilter, sortConfig, data]);
 
   const handleSort = (key) => {
     setSortConfig(prev => ({
@@ -92,6 +94,13 @@ const EventSummary = () => {
         <select value={wrestlerFilter} onChange={(e) => setWrestlerFilter(e.target.value)}>
           <option value="">All Wrestlers</option>
           {uniqueValues("wrestler_name").map((name, i) => (
+            <option key={i} value={name}>{name}</option>
+          ))}
+        </select>
+
+        <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+          <option value="">All Teams</option>
+          {uniqueValues("team_name").map((name, i) => (
             <option key={i} value={name}>{name}</option>
           ))}
         </select>
