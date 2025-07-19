@@ -5,19 +5,15 @@ import "./TeamRoster.css";
 const TeamRoster = () => {
   const { teamName } = useParams();
   const [teamroster, setteamroster] = useState([]);
-  const [sortBy, setSortBy] = useState("wrestler_name");
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortBy, setSortBy] = useState("points");
+  const [sortOrder, setSortOrder] = useState("desc");
   const navigate = useNavigate();
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
 
   useEffect(() => {
     fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
       .then((res) => res.json())
-      .then((data) => {
-        const starters = data.filter(w => w.starter).sort((a, b) => b.points - a.points);
-        const bench = data.filter(w => !w.starter).sort((a, b) => b.points - a.points);
-        setteamroster([...starters, ...bench]);
-      })
+      .then((data) => setteamroster(data))
       .catch((err) => console.error("❌ Error loading teamroster:", err));
   }, [teamName]);
 
@@ -73,9 +69,7 @@ const TeamRoster = () => {
       }
 
       const updatedRoster = await fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`).then(res => res.json());
-      const starters = updatedRoster.filter(w => w.starter).sort((a, b) => b.points - a.points);
-      const bench = updatedRoster.filter(w => !w.starter).sort((a, b) => b.points - a.points);
-      setteamroster([...starters, ...bench]);
+      setteamroster(updatedRoster);
     } catch (err) {
       console.error("Error toggling starter status:", err);
       alert("Failed to update starter status.");
@@ -91,16 +85,22 @@ const TeamRoster = () => {
     }
   };
 
-  const sortedRoster = [...teamroster].sort((a, b) => {
-    const aVal = a[sortBy];
-    const bVal = b[sortBy];
-    if (typeof aVal === "string") {
-      return sortOrder === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
-    }
-    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
-  });
+  const sortGroup = (group) => {
+    return [...group].sort((a, b) => {
+      const aVal = a[sortBy];
+      const bVal = b[sortBy];
+      if (typeof aVal === "string") {
+        return sortOrder === "asc"
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+      return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
+    });
+  };
+
+  const starters = sortGroup(teamroster.filter((w) => w.starter));
+  const bench = sortGroup(teamroster.filter((w) => !w.starter));
+  const sortedRoster = [...starters, ...bench];
 
   return (
     <div className="container">
