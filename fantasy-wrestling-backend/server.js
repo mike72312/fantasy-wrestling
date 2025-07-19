@@ -255,7 +255,10 @@ app.get("/api/wrestler/:name", async (req, res) => {
   const { name } = req.params;
   try {
     const result = await pool.query(
-      "SELECT * FROM wrestlers WHERE LOWER(wrestler_name) = LOWER($1)",
+      `SELECT w.*, t.team_name
+       FROM wrestlers w
+       LEFT JOIN teams t ON w.team_id = t.id
+       WHERE LOWER(w.wrestler_name) = LOWER($1)`,
       [name.toLowerCase()]
     );
     if (result.rows.length === 0) {
