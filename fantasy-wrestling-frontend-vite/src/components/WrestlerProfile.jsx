@@ -63,26 +63,32 @@ const WrestlerProfile = () => {
             </select>
           </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Event</th>
-                <th>Team</th>
-                <th>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedEvents.map((e, idx) => (
-                <tr key={idx}>
-                  <td>{new Date(e.event_date).toLocaleDateString()}</td>
-                  <td>{e.event_name}</td>
-                  <td>{e.team_name || "Free Agent"}</td>
-                  <td>{e.points}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+<table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
+  <thead>
+    <tr>
+      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "left" }}>Date</th>
+      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "left" }}>Event</th>
+      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "left" }}>Team</th>
+      <th style={{ borderBottom: "2px solid #ccc", padding: "8px", textAlign: "right" }}>Points</th>
+    </tr>
+  </thead>
+  <tbody>
+    {sortedEvents.map((e, idx) => (
+      <tr key={idx}>
+        <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+          {new Date(e.event_date).toLocaleDateString()}
+        </td>
+        <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>{e.event_name}</td>
+        <td style={{ borderBottom: "1px solid #eee", padding: "8px" }}>
+          {e.team_name || "Free Agent"}
+        </td>
+        <td style={{ borderBottom: "1px solid #eee", padding: "8px", textAlign: "right" }}>
+          {e.points}
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
         </>
       )}
     </div>
