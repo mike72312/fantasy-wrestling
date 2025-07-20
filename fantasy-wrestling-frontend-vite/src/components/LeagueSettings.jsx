@@ -52,12 +52,13 @@ const LeagueSettings = () => {
 
 const awardWin = async () => {
   if (!selectedWeek) return;
+  
+  // Convert MM/DD/YYYY to YYYY-MM-DD if needed
+  const weekDate = new Date(selectedWeek);
+  const isoDate = weekDate.toISOString().split("T")[0]; // YYYY-MM-DD
+
   try {
-    const res = await axios.post(
-      "https://fantasy-wrestling-backend.onrender.com/api/calculateWeeklyWins",
-      {},
-      { params: { week: selectedWeek } }
-    );
+    const res = await axios.post(`https://fantasy-wrestling-backend.onrender.com/api/calculateWeeklyWins?week=${isoDate}`);
     setWinStatus(res.data.message);
   } catch (err) {
     setWinStatus(err.response?.data?.error || "❌ Error awarding win");
