@@ -680,7 +680,7 @@ app.get("/api/weeklyScores", async (req, res) => {
 });
 
 app.post("/api/calculateWeeklyWins", async (req, res) => {
-  const { week } = req.query;
+  const { week } = req.body;
 
   if (!week) {
     return res.status(400).json({ error: "Missing ?week=YYYY-MM-DD query param" });
