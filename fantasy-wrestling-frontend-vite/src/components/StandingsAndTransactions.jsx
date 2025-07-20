@@ -1,24 +1,28 @@
+// src/components/StandingsAndTransactions.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import "./StandingsAndTransactions.css";
 
 const StandingsAndTransactions = () => {
-  const [standings, setStandings] = useState([]);
+  const [weeklyScores, setWeeklyScores] = useState([]);
+  const [weeklyWins, setWeeklyWins] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [trades, setTrades] = useState([]);
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
-  const [trades, setTrades] = useState([]);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-
   const [txPage, setTxPage] = useState(1);
   const [tradePage, setTradePage] = useState(1);
   const itemsPerPage = 10;
 
   useEffect(() => {
-    axios.get("https://fantasy-wrestling-backend.onrender.com/api/standings")
-      .then(res => setStandings(res.data))
-      .catch(err => console.error("Error loading standings:", err));
+    axios.get("https://fantasy-wrestling-backend.onrender.com/api/weeklyScores")
+      .then(res => setWeeklyScores(res.data))
+      .catch(err => console.error("Error loading weekly scores:", err));
+
+    axios.get("https://fantasy-wrestling-backend.onrender.com/api/weeklyWinTally")
+      .then(res => setWeeklyWins(res.data))
+      .catch(err => console.error("Error loading win tally:", err));
 
     axios.get("https://fantasy-wrestling-backend.onrender.com/api/transactions")
       .then(res => setTransactions(res.data))
@@ -29,20 +33,18 @@ const StandingsAndTransactions = () => {
       .catch(err => console.error("Error loading trades:", err));
   }, []);
 
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
+  const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))].sort();
+  const allTeams = [...new Set(weeklyScores.map(row => row.team_name))];
 
-  const sortedStandings = [...standings].sort((a, b) => {
-    const valA = a[sortConfig.key];
-    const valB = b[sortConfig.key];
-    if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
-    if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
-    return 0;
+  const scoresByTeam = {};
+  weeklyScores.forEach(row => {
+    if (!scoresByTeam[row.team_name]) scoresByTeam[row.team_name] = {};
+    scoresByTeam[row.team_name][row.week_start] = row.total_points;
+  });
+
+  const winMap = {};
+  weeklyWins.forEach(row => {
+    winMap[row.team_name] = parseInt(row.weekly_wins);
   });
 
   const filteredTransactions = transactions.filter(tx =>
@@ -50,37 +52,44 @@ const StandingsAndTransactions = () => {
     (!search || tx.wrestler_name?.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const paginatedTx = filteredTransactions.slice(
-    (txPage - 1) * itemsPerPage,
-    txPage * itemsPerPage
-  );
-  const paginatedTrades = trades.slice(
-    (tradePage - 1) * itemsPerPage,
-    tradePage * itemsPerPage
-  );
+  const paginatedTx = filteredTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
+  const paginatedTrades = trades.slice((tradePage - 1) * itemsPerPage, tradePage * itemsPerPage);
 
   const totalTxPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const totalTradePages = Math.ceil(trades.length / itemsPerPage);
 
   return (
     <div className="container">
-      <h2>Standings</h2>
-      <table className="styled-table">
-        <thead>
-          <tr>
-            <th onClick={() => handleSort("team_name")}>Team</th>
-            <th onClick={() => handleSort("score")}>Points</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedStandings.map((team, idx) => (
-            <tr key={idx}>
-              <td><Link to={`/roster/${team.team_name}`}>{team.team_name}</Link></td>
-              <td>{team.score}</td>
+      <h2>Standings (Weekly Wins)</h2>
+      <div className="scroll-wrapper">
+        <table className="weekly-standings-table">
+          <thead>
+            <tr>
+              <th className="frozen-col">Team</th>
+              <th className="frozen-col">Wins</th>
+              {allWeeks.map((week, idx) => (
+                <th key={idx}>{new Date(week).toLocaleDateString()}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {allTeams.map((team, i) => (
+              <tr key={i}>
+                <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
+                <td className="frozen-col">{winMap[team] || 0}</td>
+                {allWeeks.map((week, j) => {
+                  const score = scoresByTeam[team]?.[week] ?? "";
+                  const maxScore = Math.max(...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0));
+                  const isWinner = score === maxScore && score !== "";
+                  return (
+                    <td key={j} className={isWinner ? "highlight" : ""}>{score}</td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <h2>Transactions</h2>
       <div className="transactions-filter">
@@ -118,11 +127,7 @@ const StandingsAndTransactions = () => {
         </tbody>
       </table>
 
-      <Pagination
-        currentPage={txPage}
-        totalPages={totalTxPages}
-        onPageChange={setTxPage}
-      />
+      <Pagination currentPage={txPage} totalPages={totalTxPages} onPageChange={setTxPage} />
 
       <h2>Trades</h2>
       <table className="styled-table">
@@ -150,20 +155,14 @@ const StandingsAndTransactions = () => {
         </tbody>
       </table>
 
-      <Pagination
-        currentPage={tradePage}
-        totalPages={totalTradePages}
-        onPageChange={setTradePage}
-      />
+      <Pagination currentPage={tradePage} totalPages={totalTradePages} onPageChange={setTradePage} />
     </div>
   );
 };
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
-
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-
   return (
     <div className="pagination">
       <button onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>Prev</button>

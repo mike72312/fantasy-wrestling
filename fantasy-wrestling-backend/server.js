@@ -561,13 +561,12 @@ app.get("/api/transactions", async (req, res) => {
   }
 });
 
-// Get standings
 app.get("/api/standings", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT t.team_name, COALESCE(SUM(w.points), 0) AS score
+      SELECT t.team_name, COALESCE(SUM(ep.points), 0) AS score
       FROM teams t
-      LEFT JOIN wrestlers w ON t.id = w.team_id AND w.starter = true
+      LEFT JOIN event_points ep ON ep.team_id = t.id AND ep.is_starter = true
       GROUP BY t.team_name
       ORDER BY score DESC;
     `);
@@ -575,6 +574,98 @@ app.get("/api/standings", async (req, res) => {
   } catch (err) {
     console.error("Error fetching standings:", err);
     res.status(500).json({ error: "Failed to fetch standings." });
+  }
+});
+
+app.get("/api/weeklyWinners", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      WITH weekly_scores AS (
+        SELECT
+          ep.team_id,
+          DATE_TRUNC('week', ep.event_date) AS week_start,
+          SUM(ep.points) AS total_points
+        FROM event_points ep
+        WHERE ep.is_starter = true
+        GROUP BY ep.team_id, week_start
+      ),
+      weekly_ranks AS (
+        SELECT
+          ws.*,
+          RANK() OVER (PARTITION BY ws.week_start ORDER BY ws.total_points DESC) AS rank
+        FROM weekly_scores ws
+      )
+      SELECT
+        t.team_name,
+        wr.week_start::date,
+        wr.total_points,
+        wr.rank
+      FROM weekly_ranks wr
+      JOIN teams t ON t.id = wr.team_id
+      WHERE wr.rank = 1
+      ORDER BY wr.week_start;
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching weekly winners:", err);
+    res.status(500).json({ error: "Failed to fetch weekly winners." });
+  }
+});
+
+app.get("/api/weeklyWinTally", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      WITH weekly_scores AS (
+        SELECT
+          ep.team_id,
+          DATE_TRUNC('week', ep.event_date) AS week_start,
+          SUM(ep.points) AS total_points
+        FROM event_points ep
+        WHERE ep.is_starter = true
+        GROUP BY ep.team_id, week_start
+      ),
+      ranked AS (
+        SELECT
+          team_id,
+          week_start,
+          RANK() OVER (PARTITION BY week_start ORDER BY total_points DESC) AS rank
+        FROM weekly_scores
+      )
+      SELECT
+        t.team_name,
+        COUNT(*) AS weekly_wins
+      FROM ranked r
+      JOIN teams t ON t.id = r.team_id
+      WHERE r.rank = 1
+      GROUP BY t.team_name
+      ORDER BY weekly_wins DESC;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching weekly win tally:", err);
+    res.status(500).json({ error: "Failed to fetch weekly win tally." });
+  }
+});
+
+// Get all weekly scores for every team
+app.get("/api/weeklyScores", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        t.team_name,
+        DATE_TRUNC('week', ep.event_date)::date AS week_start,
+        SUM(ep.points) AS total_points
+      FROM event_points ep
+      JOIN teams t ON t.id = ep.team_id
+      WHERE ep.is_starter = true
+      GROUP BY t.team_name, week_start
+      ORDER BY week_start, t.team_name;
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching weekly scores:", err);
+    res.status(500).json({ error: "Failed to fetch weekly scores." });
   }
 });
 

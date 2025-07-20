@@ -1,59 +1,41 @@
-.styled-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px 0;
-  font-size: 1rem;
-  text-align: left;
-}
-
-.styled-table th {
-  background-color: #f4f4f4;
-  cursor: pointer;
-  padding: 0.6rem;
-  border-bottom: 2px solid #ccc;
-}
-
-.styled-table td {
-  padding: 0.6rem;
-  border-bottom: 1px solid #eee;
-}
-
-.styled-table tr:hover {
-  background-color: #f9f9f9;
-}
-
-.transactions-filter {
-  margin: 10px 0;
-  display: flex;
-  gap: 1rem;
-}
-
-.transactions-filter input,
-.transactions-filter select {
-  padding: 0.4rem;
-}
-
-.pagination {
+.scroll-wrapper {
+  overflow-x: auto;
   margin: 1rem 0;
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
 }
 
-.pagination button {
-  padding: 0.4rem 0.8rem;
+.weekly-standings-table {
+  border-collapse: collapse;
+  font-size: 1rem;
+  min-width: 800px;
+  width: max-content;
+}
+
+.weekly-standings-table th,
+.weekly-standings-table td {
+  padding: 0.6rem;
   border: 1px solid #ccc;
-  background-color: white;
-  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.pagination button.active {
-  background-color: #007bff;
-  color: white;
+.weekly-standings-table .frozen-col {
+  position: sticky;
+  left: 0;
+  background-color: #f9f9f9;
+  z-index: 2;
+}
+
+.weekly-standings-table .frozen-col:nth-child(2) {
+  left: 100px;
+  z-index: 2;
+}
+
+.weekly-standings-table th.frozen-col {
+  background-color: #f0f0f0;
+  z-index: 3;
+}
+
+.weekly-standings-table .highlight {
+  background-color: #d1ffd1;
   font-weight: bold;
-}
-
-.pagination button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
