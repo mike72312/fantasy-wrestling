@@ -679,11 +679,12 @@ app.get("/api/weeklyScores", async (req, res) => {
   }
 });
 
+//Calculate weekly wins
 app.post("/api/calculateWeeklyWins", async (req, res) => {
   const { week } = req.body;
 
   if (!week) {
-    return res.status(400).json({ error: "Missing ?week=YYYY-MM-DD query param" });
+    return res.status(400).json({ error: "Missing 'week' in request body" });
   }
 
   const weekStart = new Date(week);
@@ -692,7 +693,6 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
   }
 
   try {
-    // Check if wins have already been recorded for this week
     const alreadyRecorded = await pool.query(
       "SELECT 1 FROM weekly_wins WHERE week_start = $1 LIMIT 1",
       [weekStart]
@@ -701,7 +701,6 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
       return res.status(409).json({ error: "Wins already recorded for this week." });
     }
 
-    // Get weekly scores
     const scores = await pool.query(`
       SELECT team_id, SUM(points) AS total_points
       FROM event_points
