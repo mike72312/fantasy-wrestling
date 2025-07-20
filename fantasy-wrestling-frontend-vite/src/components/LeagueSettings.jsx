@@ -50,18 +50,19 @@ const LeagueSettings = () => {
     }
   };
 
-  const awardWin = async () => {
-    if (!selectedWeek) return;
-    try {
-      const res = await axios.post("https://fantasy-wrestling-backend.onrender.com/api/calculateWeeklyWins", {
-        week: selectedWeek
-      });
-      setWinStatus(res.data.message);
-    } catch (err) {
-      setWinStatus(err.response?.data?.error || "❌ Error awarding win");
-    }
-  };
-
+const awardWin = async () => {
+  if (!selectedWeek) return;
+  try {
+    const res = await axios.post(
+      "https://fantasy-wrestling-backend.onrender.com/api/calculateWeeklyWins",
+      {},
+      { params: { week: selectedWeek } }
+    );
+    setWinStatus(res.data.message);
+  } catch (err) {
+    setWinStatus(err.response?.data?.error || "❌ Error awarding win");
+  }
+};
 
   const dayMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
