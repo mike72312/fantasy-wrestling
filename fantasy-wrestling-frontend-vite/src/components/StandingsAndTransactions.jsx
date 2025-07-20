@@ -68,7 +68,7 @@ const StandingsAndTransactions = () => {
               <th className="frozen-col">Team</th>
               <th className="frozen-col">Wins</th>
               {allWeeks.map((week, idx) => (
-                <th key={i}>
+                <th key={idx}>
                   {(() => {
                     const start = new Date(week);
                     const end = new Date(start);
@@ -84,7 +84,6 @@ const StandingsAndTransactions = () => {
                    })}`;
                   })()}
                 </th>
-
               ))}
             </tr>
           </thead>
