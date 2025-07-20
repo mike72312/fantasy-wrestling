@@ -364,7 +364,7 @@ app.get("/api/trades", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch trades." });
   }
 });
-//Import Event
+// Import Event
 app.post("/api/importEvent", async (req, res) => {
   const { rawText, event_name, event_date } = req.body;
 
@@ -420,6 +420,12 @@ app.post("/api/importEvent", async (req, res) => {
       return res.status(400).json({ error: "No valid matches or bonus points found." });
     }
 
+    // Remove previously imported points for this event (by name and date)
+    await pool.query(
+      "DELETE FROM event_points WHERE event_name = $1 AND event_date = $2",
+      [event_name, event_date]
+    );
+
     const summary = [];
 
     for (const detail of eventDetails) {
@@ -463,13 +469,17 @@ app.post("/api/importEvent", async (req, res) => {
 
       if (!isStarter) continue; // Only score points for starters
 
-      // Update points and insert event history
-      await pool.query("UPDATE wrestlers SET points = points + $1 WHERE id = $2", [points, wrestlerId]);
-
+      // Update wrestler total points
       await pool.query(
-        `INSERT INTO event_points (wrestler_id, team_id, event_name, event_date, points, description)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [wrestlerId, teamId, event_name, event_date, points, description]
+        "UPDATE wrestlers SET points = points + $1 WHERE id = $2",
+        [points, wrestlerId]
+      );
+
+      // Insert into event_points with is_starter and team_id
+      await pool.query(
+        `INSERT INTO event_points (wrestler_id, team_id, is_starter, event_name, event_date, points, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [wrestlerId, teamId, isStarter, event_name, event_date, points, description]
       );
 
       summary.push({ wrestler: name, points, description });
