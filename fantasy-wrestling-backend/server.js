@@ -708,14 +708,14 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
     }
 
     // Get weekly scores
-  const scores = await pool.query(`
-    SELECT team_id, SUM(points) AS total_points
-    FROM event_points
-    WHERE is_starter = true AND team_id IS NOT NULL AND DATE_TRUNC('week', event_date) = $1
-    GROUP BY team_id
-    `, [weekStart]);
-
-
+    const scores = await pool.query(`
+      SELECT team_id, SUM(points) AS total_points
+      FROM event_points
+      WHERE is_starter = true
+        AND DATE_TRUNC('week', event_date) = $1
+        AND team_id IS NOT NULL
+      GROUP BY team_id
+      `, [weekStart]);
 
     if (scores.rows.length === 0) {
       return res.status(404).json({ error: "No starter scores found for this week." });
