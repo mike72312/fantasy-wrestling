@@ -679,6 +679,11 @@ app.get("/api/weeklyScores", async (req, res) => {
   }
 });
 
+//delete
+app.get("/__debug", (req, res) => {
+  res.send("Deployed code is active. Routes include: calculateWeeklyWins");
+});
+
 //Calculate weekly wins
 app.post("/api/calculateWeeklyWins", async (req, res) => {
   const { week } = req.body;
