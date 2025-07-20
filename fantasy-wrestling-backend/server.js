@@ -679,18 +679,6 @@ app.get("/api/weeklyScores", async (req, res) => {
   }
 });
 
-//delete
-app.get("/__debug", (req, res) => {
-  res.send("Deployed code is active. Routes include: calculateWeeklyWins");
-});
-app.get("/debug-calculate", (req, res) => {
-  res.send("✅ server.js is running");
-});
-app._router.stack.forEach((r) => {
-  if (r.route && r.route.path)
-    console.log("Loaded route:", r.route.path);
-});
-
 
 //Calculate weekly wins
 app.post("/api/calculateWeeklyWins", async (req, res) => {
@@ -744,6 +732,18 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
     console.error("Error calculating weekly wins:", err);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+//delete
+app.get("/__debug", (req, res) => {
+  res.send("Deployed code is active. Routes include: calculateWeeklyWins");
+});
+app.get("/debug-calculate", (req, res) => {
+  res.send("✅ server.js is running");
+});
+app._router.stack.forEach((r) => {
+  if (r.route && r.route.path)
+    console.log("Loaded route:", r.route.path);
 });
 
 // Start server
