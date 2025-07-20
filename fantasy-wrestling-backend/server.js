@@ -681,32 +681,39 @@ app.get("/api/weeklyScores", async (req, res) => {
 
 //Calculate weekly wins
 app.post("/api/calculateWeeklyWins", async (req, res) => {
-  const { week } = req.body;
+  const { week } = req.query;
 
   if (!week) {
-    return res.status(400).json({ error: "Missing 'week' in request body" });
+    return res.status(400).json({ error: "Missing ?week=YYYY-MM-DD query param" });
   }
 
-  const weekStart = new Date(week);
-  if (isNaN(weekStart)) {
+  const weekDate = new Date(week);
+  if (isNaN(weekDate)) {
     return res.status(400).json({ error: "Invalid week format. Use YYYY-MM-DD." });
   }
 
   try {
+    // Truncate to start of the week (Sunday)
+    const weekStart = new Date(weekDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // force to Sunday
+    const weekStartStr = weekStart.toISOString().slice(0, 10); // format as YYYY-MM-DD
+
+    // Check if already recorded
     const alreadyRecorded = await pool.query(
-      "SELECT 1 FROM weekly_wins WHERE week_start = $1 LIMIT 1",
-      [weekStart]
+      "SELECT 1 FROM weekly_wins WHERE week_start = DATE_TRUNC('week', $1::date) LIMIT 1",
+      [weekStartStr]
     );
     if (alreadyRecorded.rows.length > 0) {
       return res.status(409).json({ error: "Wins already recorded for this week." });
     }
 
+    // Get weekly scores
     const scores = await pool.query(`
       SELECT team_id, SUM(points) AS total_points
       FROM event_points
-      WHERE is_starter = true AND DATE_TRUNC('week', event_date) = $1
+      WHERE is_starter = true AND DATE_TRUNC('week', event_date) = DATE_TRUNC('week', $1::date)
       GROUP BY team_id
-    `, [weekStart]);
+    `, [weekStartStr]);
 
     if (scores.rows.length === 0) {
       return res.status(404).json({ error: "No starter scores found for this week." });
@@ -717,13 +724,13 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
 
     for (const winner of winners) {
       await pool.query(
-        "INSERT INTO weekly_wins (week_start, team_id) VALUES ($1, $2)",
-        [weekStart, winner.team_id]
+        "INSERT INTO weekly_wins (week_start, team_id) VALUES (DATE_TRUNC('week', $1::date), $2)",
+        [weekStartStr, winner.team_id]
       );
     }
 
     res.json({
-      message: `✅ Win(s) recorded for week starting ${week}`,
+      message: `✅ Win(s) recorded for week starting ${weekStartStr}`,
       winners: winners.map(w => w.team_id),
     });
   } catch (err) {
