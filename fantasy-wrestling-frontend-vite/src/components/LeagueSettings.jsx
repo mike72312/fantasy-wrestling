@@ -53,7 +53,6 @@ const LeagueSettings = () => {
   const awardWin = async () => {
     if (!selectedWeek) return;
 
-    // Convert MM/DD/YYYY to YYYY-MM-DD if needed
     const weekDate = new Date(selectedWeek);
     const isoDate = weekDate.toISOString().split("T")[0]; // YYYY-MM-DD
 
