@@ -8,6 +8,8 @@ const LeagueSettings = () => {
   const [day, setDay] = useState(0);
   const [startHour, setStartHour] = useState(20);
   const [endHour, setEndHour] = useState(23);
+  const [selectedWeek, setSelectedWeek] = useState("");
+  const [winStatus, setWinStatus] = useState("");
 
   const fetchWindows = async () => {
     try {
@@ -34,7 +36,7 @@ const LeagueSettings = () => {
       setEndHour(23);
       fetchWindows();
     } catch (err) {
-      alert("Failed to add restriction: " + err.response?.data?.error || err.message);
+      alert("Failed to add restriction: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -45,6 +47,16 @@ const LeagueSettings = () => {
       fetchWindows();
     } catch (err) {
       alert("Failed to delete restriction.");
+    }
+  };
+
+  const awardWin = async () => {
+    if (!selectedWeek) return;
+    try {
+      const res = await axios.post(`https://fantasy-wrestling-backend.onrender.com/api/calculateWeeklyWins?week=${selectedWeek}`);
+      setWinStatus(res.data.message);
+    } catch (err) {
+      setWinStatus(err.response?.data?.error || "❌ Error awarding win");
     }
   };
 
@@ -97,6 +109,22 @@ const LeagueSettings = () => {
       </label>
       <br />
       <button onClick={addWindow}>Add Restriction</button>
+
+      <hr style={{ margin: "40px 0" }} />
+
+      <h2>Award Weekly Win</h2>
+      <div className="win-award-tool">
+        <label>
+          Week Start Date:
+          <input
+            type="date"
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(e.target.value)}
+          />
+        </label>
+        <button onClick={awardWin}>Award Win</button>
+        {winStatus && <p className="win-status">{winStatus}</p>}
+      </div>
     </div>
   );
 };

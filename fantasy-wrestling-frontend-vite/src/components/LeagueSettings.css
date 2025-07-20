@@ -53,3 +53,23 @@ select {
   margin-top: 2px;
   width: 100px;
 }
+
+/* ➕ New styles for Award Weekly Win */
+.win-award-tool {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  max-width: 400px;
+}
+
+.win-award-tool input[type="date"] {
+  padding: 6px;
+  width: 160px;
+  margin: 5px 10px 5px 0;
+}
+
+.win-status {
+  margin-top: 10px;
+  font-weight: bold;
+}

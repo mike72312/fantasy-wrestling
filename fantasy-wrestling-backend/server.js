@@ -679,6 +679,60 @@ app.get("/api/weeklyScores", async (req, res) => {
   }
 });
 
+app.post("/api/calculateWeeklyWins", async (req, res) => {
+  const { week } = req.query;
+
+  if (!week) {
+    return res.status(400).json({ error: "Missing ?week=YYYY-MM-DD query param" });
+  }
+
+  const weekStart = new Date(week);
+  if (isNaN(weekStart)) {
+    return res.status(400).json({ error: "Invalid week format. Use YYYY-MM-DD." });
+  }
+
+  try {
+    // Check if wins have already been recorded for this week
+    const alreadyRecorded = await pool.query(
+      "SELECT 1 FROM weekly_wins WHERE week_start = $1 LIMIT 1",
+      [weekStart]
+    );
+    if (alreadyRecorded.rows.length > 0) {
+      return res.status(409).json({ error: "Wins already recorded for this week." });
+    }
+
+    // Get weekly scores
+    const scores = await pool.query(`
+      SELECT team_id, SUM(points) AS total_points
+      FROM event_points
+      WHERE is_starter = true AND DATE_TRUNC('week', event_date) = $1
+      GROUP BY team_id
+    `, [weekStart]);
+
+    if (scores.rows.length === 0) {
+      return res.status(404).json({ error: "No starter scores found for this week." });
+    }
+
+    const maxPoints = Math.max(...scores.rows.map(row => parseFloat(row.total_points)));
+    const winners = scores.rows.filter(row => parseFloat(row.total_points) === maxPoints);
+
+    for (const winner of winners) {
+      await pool.query(
+        "INSERT INTO weekly_wins (week_start, team_id) VALUES ($1, $2)",
+        [weekStart, winner.team_id]
+      );
+    }
+
+    res.json({
+      message: `✅ Win(s) recorded for week starting ${week}`,
+      winners: winners.map(w => w.team_id),
+    });
+  } catch (err) {
+    console.error("Error calculating weekly wins:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
