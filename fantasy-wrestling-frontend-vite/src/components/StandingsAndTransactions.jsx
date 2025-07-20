@@ -44,7 +44,7 @@ const StandingsAndTransactions = () => {
 
   const winMap = {};
   weeklyWins.forEach(row => {
-    winMap[row.team_name] = parseInt(row.weekly_wins);
+    winMap[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
   });
 
   const filteredTransactions = transactions.filter(tx =>
@@ -91,7 +91,7 @@ const StandingsAndTransactions = () => {
             {allTeams.map((team, i) => (
               <tr key={i}>
                 <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
-                <td className="frozen-col">{winMap[team] || 0}</td>
+                <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
                 {allWeeks.map((week, j) => {
                   const score = scoresByTeam[team]?.[week] ?? "";
                   const maxScore = Math.max(...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0));
