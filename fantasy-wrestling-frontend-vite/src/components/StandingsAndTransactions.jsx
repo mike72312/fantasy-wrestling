@@ -68,7 +68,23 @@ const StandingsAndTransactions = () => {
               <th className="frozen-col">Team</th>
               <th className="frozen-col">Wins</th>
               {allWeeks.map((week, idx) => (
-                <th key={idx}>{new Date(week).toLocaleDateString()}</th>
+                <th key={i}>
+                  {(() => {
+                    const start = new Date(week);
+                    const end = new Date(start);
+                    end.setDate(start.getDate() + 6);
+                    return `${start.toLocaleDateString(undefined, {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                  })} – ${end.toLocaleDateString(undefined, {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                   })}`;
+                  })()}
+                </th>
+
               ))}
             </tr>
           </thead>
