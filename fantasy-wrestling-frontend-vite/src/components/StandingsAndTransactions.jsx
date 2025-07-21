@@ -114,7 +114,7 @@ const StandingsAndTransactions = () => {
                   <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
                   {allWeeks.map((week, j) => {
                     const score = scoresByTeam[team]?.[week] ?? "";
-                    const isTopScore = score !== "" && score === maxScoresByWeek[week];
+                    const isTopScore = score !== "" && Number(score) === maxScoresByWeek[week];
                     return (
                       <td key={j} className={isTopScore ? "highlight" : ""}>{score}</td>
                     );
