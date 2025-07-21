@@ -720,23 +720,40 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
   const { teamName } = req.params;
 
   try {
+    const teamResult = await pool.query(
+      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
+      [teamName.toLowerCase()]
+    );
+
+    if (teamResult.rows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const teamId = teamResult.rows[0].id;
+
     const result = await pool.query(`
       SELECT 
-        ep.event_name,
         ep.event_date,
-        SUM(ep.points) AS total_points
+        ep.event_name,
+        SUM(ep.points) AS total_points,
+        JSON_AGG(
+          JSON_BUILD_OBJECT(
+            'wrestler_name', w.wrestler_name,
+            'points', ep.points,
+            'description', ep.description
+          )
+        ) AS breakdown
       FROM event_points ep
-      JOIN teams t ON ep.team_id = t.id
-      WHERE LOWER(t.team_name) = LOWER($1)
-        AND ep.is_starter = true
-      GROUP BY ep.event_name, ep.event_date
+      JOIN wrestlers w ON ep.wrestler_id = w.id
+      WHERE ep.team_id = $1 AND ep.is_starter = true
+      GROUP BY ep.event_date, ep.event_name
       ORDER BY ep.event_date DESC
-    `, [teamName]);
+    `, [teamId]);
 
     res.json(result.rows);
   } catch (err) {
-    console.error("Error fetching team event points:", err);
-    res.status(500).json({ error: "Failed to fetch team event points." });
+    console.error("Error fetching event points for team:", err);
+    res.status(500).json({ error: "Failed to fetch event points for team" });
   }
 });
 
