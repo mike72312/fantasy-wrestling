@@ -765,6 +765,67 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
   }
 });
 
+// Get total points per event (with breakdown) for a specific team
+app.get("/api/eventPoints/team/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+
+  try {
+    const teamResult = await pool.query(
+      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
+      [teamName.toLowerCase()]
+    );
+
+    if (teamResult.rows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const teamId = teamResult.rows[0].id;
+
+    const eventTotals = await pool.query(
+      `
+      SELECT event_name, event_date, SUM(points) AS total_points
+      FROM event_points
+      WHERE team_id = $1
+      GROUP BY event_name, event_date
+      ORDER BY event_date DESC
+      `,
+      [teamId]
+    );
+
+    const breakdowns = await pool.query(
+      `
+      SELECT event_name, event_date, wrestler_name, points, description
+      FROM event_points
+      WHERE team_id = $1
+      ORDER BY event_date DESC
+      `,
+      [teamId]
+    );
+
+    const breakdownMap = {};
+    for (let row of breakdowns.rows) {
+      const key = row.event_date.toISOString().split("T")[0];
+      if (!breakdownMap[key]) breakdownMap[key] = [];
+      breakdownMap[key].push(row);
+    }
+
+    const result = eventTotals.rows.map(evt => {
+      const key = evt.event_date.toISOString().split("T")[0];
+      return {
+        event_name: evt.event_name,
+        event_date: evt.event_date,
+        total_points: Number(evt.total_points),
+        breakdown: breakdownMap[key] || []
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching team event points:", err);
+    res.status(500).json({ error: "Failed to fetch team event points" });
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`✅ Server running on port ${port}`);
