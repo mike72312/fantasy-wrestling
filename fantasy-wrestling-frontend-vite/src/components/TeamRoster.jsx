@@ -1,48 +1,37 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import "./TeamRoster.css";
 
 const TeamRoster = () => {
   const { teamName } = useParams();
   const [teamroster, setteamroster] = useState([]);
-  const [sortBy, setSortBy] = useState("points");
-  const [sortOrder, setSortOrder] = useState("desc");
-  const [rankInfo, setRankInfo] = useState(null);
+  const [standings, setStandings] = useState([]);
   const [eventPoints, setEventPoints] = useState([]);
   const [expandedEvents, setExpandedEvents] = useState([]);
-  const navigate = useNavigate();
+  const [teamInfo, setTeamInfo] = useState(null);
+
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
 
   useEffect(() => {
     fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
       .then(res => res.json())
       .then(setteamroster)
-      .catch(err => console.error("❌ Error loading teamroster:", err));
+      .catch(err => console.error("❌ Error loading team roster:", err));
 
-    fetch(`https://fantasy-wrestling-backend.onrender.com/api/teamRank/${teamName}`)
+    fetch("https://fantasy-wrestling-backend.onrender.com/api/standings")
       .then(res => res.json())
       .then(data => {
-        if (data && typeof data === "object") {
-          setRankInfo({
-            rank: data.rank,
-            total_points: data.total_points,
-            total_wins: data.total_wins
-          });
-        }
+        setStandings(data);
+        const found = data.find(t => t.team_name.toLowerCase() === teamName.toLowerCase());
+        setTeamInfo(found);
       })
-      .catch(err => console.error("❌ Error loading rank:", err));
+      .catch(err => console.error("❌ Error loading standings:", err));
 
     fetch(`https://fantasy-wrestling-backend.onrender.com/api/eventPoints/team/${teamName}`)
       .then(res => res.json())
       .then(setEventPoints)
       .catch(err => console.error("❌ Error loading team event points:", err));
   }, [teamName]);
-
-  const toggleExpand = (date) => {
-    setExpandedEvents((prev) =>
-      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
-    );
-  };
 
   const handleDrop = async (wrestlerName) => {
     try {
@@ -99,52 +88,41 @@ const TeamRoster = () => {
     }
   };
 
-  const handleSort = (key) => {
-    setSortBy(key === sortBy ? key : key);
-    setSortOrder(sortBy === key && sortOrder === "asc" ? "desc" : "asc");
+  const toggleExpand = (date) => {
+    setExpandedEvents((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+    );
   };
 
-  const sortGroup = (group) => {
-    return [...group].sort((a, b) => {
-      const aVal = a[sortBy];
-      const bVal = b[sortBy];
-      if (typeof aVal === "string") {
-        return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
-    });
-  };
-
-  const starters = sortGroup(teamroster.filter((w) => w.starter));
-  const bench = sortGroup(teamroster.filter((w) => !w.starter));
-  const sortedRoster = [...starters, ...bench];
+  const starters = teamroster.filter((w) => w.starter);
+  const bench = teamroster.filter((w) => !w.starter);
 
   return (
     <div className="container">
       <h2>{teamName}'s Roster</h2>
 
-      {rankInfo && (
+      {teamInfo && (
         <div className="team-rank-summary">
-          <p><strong>Rank:</strong> #{rankInfo.rank ?? "N/A"}</p>
-          <p><strong>Total Wins:</strong> {rankInfo.total_wins ?? 0}</p>
-          <p><strong>Total Points:</strong> {rankInfo.total_points ?? 0}</p>
+          <p><strong>Rank:</strong> #{teamInfo.rank}</p>
+          <p><strong>Total Wins:</strong> {teamInfo.total_wins}</p>
+          <p><strong>Total Points:</strong> {teamInfo.total_points}</p>
         </div>
       )}
 
-      {sortedRoster.length === 0 ? (
+      {teamroster.length === 0 ? (
         <p>Roster is empty.</p>
       ) : (
         <table className="roster-table" border="1" cellPadding="8">
           <thead>
             <tr>
-              <th onClick={() => handleSort("wrestler_name")}>Name</th>
-              <th onClick={() => handleSort("points")}>Points</th>
+              <th>Name</th>
+              <th>Points</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {sortedRoster.map((wrestler, i) => (
+            {[...starters, ...bench].map((wrestler, i) => (
               <tr key={i}>
                 <td>
                   <Link to={`/wrestler/${encodeURIComponent(wrestler.wrestler_name)}`}>
