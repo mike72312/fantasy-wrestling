@@ -68,3 +68,30 @@
   font-style: italic;
   color: #888;
 }
+
+.team-rank-summary {
+  margin-bottom: 1rem;
+  background: #f9f9f9;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.event-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.event-summary-table th,
+.event-summary-table td {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  text-align: left;
+}
+
+.event-summary-table button {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}

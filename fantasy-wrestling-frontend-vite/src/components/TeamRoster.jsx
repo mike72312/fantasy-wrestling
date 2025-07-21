@@ -7,15 +7,34 @@ const TeamRoster = () => {
   const [teamroster, setteamroster] = useState([]);
   const [sortBy, setSortBy] = useState("points");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [rankInfo, setRankInfo] = useState(null);
+  const [eventPoints, setEventPoints] = useState([]);
+  const [expandedEvents, setExpandedEvents] = useState([]);
   const navigate = useNavigate();
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
 
   useEffect(() => {
     fetch(`https://fantasy-wrestling-backend.onrender.com/api/roster/${teamName}`)
-      .then((res) => res.json())
-      .then((data) => setteamroster(data))
-      .catch((err) => console.error("❌ Error loading teamroster:", err));
+      .then(res => res.json())
+      .then(setteamroster)
+      .catch(err => console.error("❌ Error loading teamroster:", err));
+
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/teamRank/${teamName}`)
+      .then(res => res.json())
+      .then(setRankInfo)
+      .catch(err => console.error("❌ Error loading rank:", err));
+
+    fetch(`https://fantasy-wrestling-backend.onrender.com/api/eventPoints/team/${teamName}`)
+      .then(res => res.json())
+      .then(setEventPoints)
+      .catch(err => console.error("❌ Error loading team event points:", err));
   }, [teamName]);
+
+  const toggleExpand = (date) => {
+    setExpandedEvents((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+    );
+  };
 
   const handleDrop = async (wrestlerName) => {
     try {
@@ -60,11 +79,7 @@ const TeamRoster = () => {
 
       if (!res.ok) {
         const error = await res.json();
-        if (res.status === 403) {
-          alert(error.error || "Restricted hours: Cannot change starter status.");
-        } else {
-          alert(error.error || "Error updating starter status");
-        }
+        alert(error.error || "Error updating starter status");
         return;
       }
 
@@ -77,12 +92,8 @@ const TeamRoster = () => {
   };
 
   const handleSort = (key) => {
-    if (sortBy === key) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(key);
-      setSortOrder("asc");
-    }
+    setSortBy(key === sortBy ? key : key);
+    setSortOrder(sortBy === key && sortOrder === "asc" ? "desc" : "asc");
   };
 
   const sortGroup = (group) => {
@@ -90,9 +101,7 @@ const TeamRoster = () => {
       const aVal = a[sortBy];
       const bVal = b[sortBy];
       if (typeof aVal === "string") {
-        return sortOrder === "asc"
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
+        return sortOrder === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
       }
       return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
     });
@@ -105,6 +114,13 @@ const TeamRoster = () => {
   return (
     <div className="container">
       <h2>{teamName}'s Roster</h2>
+
+      {rankInfo && (
+        <div className="team-rank-summary">
+          <p><strong>Rank:</strong> #{rankInfo.rank}</p>
+          <p><strong>Total Points:</strong> {rankInfo.total_points}</p>
+        </div>
+      )}
 
       {sortedRoster.length === 0 ? (
         <p>Roster is empty.</p>
@@ -150,6 +166,47 @@ const TeamRoster = () => {
           </tbody>
         </table>
       )}
+
+      <h3 style={{ marginTop: "2rem" }}>Team Event Points</h3>
+      <table className="event-summary-table" border="1" cellPadding="8">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Event</th>
+            <th>Total Points</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {eventPoints.map((event, i) => (
+            <React.Fragment key={i}>
+              <tr>
+                <td>{new Date(event.event_date).toLocaleDateString()}</td>
+                <td>{event.event_name}</td>
+                <td>{event.total_points}</td>
+                <td>
+                  <button onClick={() => toggleExpand(event.event_date)}>
+                    {expandedEvents.includes(event.event_date) ? "Hide" : "Show"} Breakdown
+                  </button>
+                </td>
+              </tr>
+              {expandedEvents.includes(event.event_date) && event.breakdown && (
+                <tr>
+                  <td colSpan="4">
+                    <ul>
+                      {event.breakdown.map((pt, idx) => (
+                        <li key={idx}>
+                          {pt.wrestler_name}: {pt.points} points — {pt.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              )}
+            </React.Fragment>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
