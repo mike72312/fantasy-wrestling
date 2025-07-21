@@ -33,30 +33,8 @@ const StandingsAndTransactions = () => {
       .catch(err => console.error("Error loading trades:", err));
   }, []);
 
-  //delete
-  useEffect(() => {
-  const winMapDebug = {};
-  weeklyWins.forEach(row => {
-    winMapDebug[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
-  });
-
-  console.log("🟡 weeklyWins from backend:", weeklyWins);
-  console.log("🟢 winMap after processing:", winMapDebug);
-  console.log("🔵 allTeams:", allTeams);
-}, [weeklyWins, weeklyScores]);
-
 
   const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))].sort();
-  // Build a set of all unique team names from weeklyScores
-  const rawTeams = [...new Set(weeklyScores.map(row => row.team_name))];
-
-  // Sort by wins descending, then name ascending
-  const allTeams = rawTeams.sort((a, b) => {
-    const winsA = winMap[a.toLowerCase()] || 0;
-    const winsB = winMap[b.toLowerCase()] || 0;
-    if (winsB !== winsA) return winsB - winsA; // sort by wins descending
-    return a.localeCompare(b); // break tie alphabetically
-  });
 
   const scoresByTeam = {};
   weeklyScores.forEach(row => {
@@ -67,6 +45,17 @@ const StandingsAndTransactions = () => {
   const winMap = {};
   weeklyWins.forEach(row => {
     winMap[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
+  });
+
+    // Build a set of all unique team names from weeklyScores
+  const rawTeams = [...new Set(weeklyScores.map(row => row.team_name))];
+
+  // Sort by wins descending, then name ascending
+  const allTeams = rawTeams.sort((a, b) => {
+    const winsA = winMap[a.toLowerCase()] || 0;
+    const winsB = winMap[b.toLowerCase()] || 0;
+    if (winsB !== winsA) return winsB - winsA; // sort by wins descending
+    return a.localeCompare(b); // break tie alphabetically
   });
 
   const filteredTransactions = transactions.filter(tx =>
