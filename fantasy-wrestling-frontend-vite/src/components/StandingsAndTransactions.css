@@ -1,41 +1,52 @@
-.scroll-wrapper {
-  overflow-x: auto;
-  margin: 1rem 0;
+.weekly-standings-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.95rem;
 }
 
-.weekly-standings-table {
-  border-collapse: collapse;
-  font-size: 1rem;
-  min-width: 800px;
-  width: max-content;
+.weekly-standings-table thead {
+  background-color: #f0f0f0;
 }
 
 .weekly-standings-table th,
 .weekly-standings-table td {
-  padding: 0.6rem;
-  border: 1px solid #ccc;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.weekly-standings-table td:nth-child(1),
+.weekly-standings-table td:nth-child(3),
+.weekly-standings-table th:nth-child(1),
+.weekly-standings-table th:nth-child(3) {
   text-align: center;
-  white-space: nowrap;
 }
 
-.weekly-standings-table .frozen-col {
-  position: sticky;
-  left: 0;
+.weekly-standings-table tbody tr:nth-child(even) {
   background-color: #f9f9f9;
-  z-index: 2;
 }
 
-.weekly-standings-table .frozen-col:nth-child(2) {
-  left: 100px;
-  z-index: 2;
-}
-
-.weekly-standings-table th.frozen-col {
-  background-color: #f0f0f0;
-  z-index: 3;
+.weekly-standings-table tbody tr:first-child {
+  font-weight: bold;
+  background-color: #fffce6;
 }
 
 .weekly-standings-table .highlight {
-  background-color: #d1ffd1;
-  font-weight: bold;
+  background-color: #d1ffd1 !important;
+}
+
+.frozen-col {
+  position: sticky;
+  left: 0;
+  background-color: #fff;
+  z-index: 1;
+}
+
+.scroll-wrapper {
+  overflow-x: auto;
 }
