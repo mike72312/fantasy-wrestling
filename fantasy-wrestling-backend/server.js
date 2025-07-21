@@ -716,99 +716,48 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
 });
 
 // Get event point summary for a specific team
-app.get("/api/eventPoints/team/:teamName", async (req, res) => {
-  const { teamName } = req.params;
-
-  try {
-    const teamResult = await pool.query(
-      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
-      [teamName.toLowerCase()]
-    );
-
-    if (teamResult.rows.length === 0) {
-      return res.status(404).json({ error: "Team not found" });
-    }
-
-    const teamId = teamResult.rows[0].id;
-
-    const result = await pool.query(`
-      SELECT 
-        ep.event_date,
-        ep.event_name,
-        SUM(ep.points) AS total_points,
-        JSON_AGG(
-          JSON_BUILD_OBJECT(
-            'wrestler_name', w.wrestler_name,
-            'points', ep.points,
-            'description', ep.description
-          )
-        ) AS breakdown
-      FROM event_points ep
-      JOIN wrestlers w ON ep.wrestler_id = w.id
-      WHERE ep.team_id = $1 AND ep.is_starter = true
-      GROUP BY ep.event_date, ep.event_name
-      ORDER BY ep.event_date DESC
-    `, [teamId]);
-
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Error fetching event points for team:", err);
-    res.status(500).json({ error: "Failed to fetch event points for team" });
-  }
-});
-
 app.get("/api/teamRank/:teamName", async (req, res) => {
   const { teamName } = req.params;
   const normalized = teamName.toLowerCase();
 
   try {
-    // Get all teams' total points
+    // Step 1: Get total points for all teams (same as Standings page)
     const standingsResult = await pool.query(
-      `SELECT t.team_name, COALESCE(SUM(w.points), 0) AS total_points
+      `SELECT t.id, t.team_name, COALESCE(SUM(w.points), 0) AS total_points
        FROM teams t
        LEFT JOIN wrestlers w ON t.id = w.team_id
-       GROUP BY t.team_name
+       GROUP BY t.id
        ORDER BY total_points DESC`
     );
 
-    const standings = standingsResult.rows.map(row => ({
+    const standings = standingsResult.rows.map((row, index) => ({
+      team_id: row.id,
       team_name: row.team_name,
-      total_points: parseFloat(row.total_points)
+      total_points: parseFloat(row.total_points),
+      rank: index + 1
     }));
 
-    const teamData = standings.find(t => t.team_name.toLowerCase() === normalized);
-    const rank = standings.findIndex(t => t.team_name.toLowerCase() === normalized) + 1;
-
-    // Get the team_id for weekly_wins lookup
-    const teamIdResult = await pool.query(
-      `SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)`,
-      [normalized]
+    const teamData = standings.find(
+      (t) => t.team_name.toLowerCase() === normalized
     );
-    if (teamIdResult.rows.length === 0) {
-      return res.status(404).json({ error: "Team not found" });
-    }
-    const teamId = teamIdResult.rows[0].id;
-
-    // Get total weekly wins by counting rows in weekly_wins where team_id matches
-    const winsResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM weekly_wins WHERE team_id = $1`,
-      [teamId]
-    );
-    const total_wins = parseInt(winsResult.rows[0].count, 10);
 
     if (!teamData) {
-      console.warn(`⚠️ Could not find team ${teamName} in standings`);
-      return res.json({
-        rank: null,
-        total_wins,
-        total_points: 0
-      });
+      return res.status(404).json({ error: "Team not found in standings" });
     }
 
+    // Step 2: Count number of weekly wins from the weekly_wins table
+    const winsResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM weekly_wins WHERE team_id = $1`,
+      [teamData.team_id]
+    );
+
+    const total_wins = parseInt(winsResult.rows[0].count, 10);
+
+    // Step 3: Return fully accurate info
     res.json({
-      rank,
-      total_wins,
-      total_points: teamData.total_points
+      rank: teamData.rank,
+      total_points: teamData.total_points,
+      total_wins
     });
   } catch (err) {
     console.error("🔥 Error fetching team rank/wins:", err);
