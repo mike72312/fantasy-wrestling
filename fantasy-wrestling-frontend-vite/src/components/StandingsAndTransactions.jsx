@@ -34,7 +34,8 @@ const StandingsAndTransactions = () => {
   }, []);
 
 
-  const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))].sort();
+  const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))]
+  .sort((a, b) => new Date(b) - new Date(a)); // sort descending (newest first)
 
   const scoresByTeam = {};
   weeklyScores.forEach(row => {
