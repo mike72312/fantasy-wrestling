@@ -741,46 +741,43 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
   }
 });
 
-app.get("/api/eventPoints/team/:teamName", async (req, res) => {
+app.get("/api/teamRank/:teamName", async (req, res) => {
   const { teamName } = req.params;
 
   try {
-    // Get team ID
-    const teamResult = await pool.query(
-      "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
-      [teamName]
-    );
+    // Get total points and rank
+    const standingsResult = await pool.query(`
+      SELECT team_name, SUM(w.points) AS total_points
+      FROM teams t
+      JOIN wrestlers w ON t.id = w.team_id
+      GROUP BY team_name
+      ORDER BY total_points DESC
+    `);
 
-    if (teamResult.rows.length === 0) {
+    const standings = standingsResult.rows;
+    const rank = standings.findIndex(t => t.team_name.toLowerCase() === teamName.toLowerCase()) + 1;
+    const teamData = standings.find(t => t.team_name.toLowerCase() === teamName.toLowerCase());
+
+    if (!teamData) {
       return res.status(404).json({ error: "Team not found" });
     }
 
-    const teamId = teamResult.rows[0].id;
+    // Get total wins
+    const winsResult = await pool.query(
+      `SELECT COUNT(*) FROM weekly_wins WHERE LOWER(winning_team) = LOWER($1)`,
+      [teamName]
+    );
 
-    // Get events with total points and breakdown
-    const result = await pool.query(`
-      SELECT 
-        ep.event_date,
-        ep.event_name,
-        SUM(ep.points) AS total_points,
-        JSON_AGG(
-          JSON_BUILD_OBJECT(
-            'wrestler_name', w.wrestler_name,
-            'points', ep.points,
-            'description', ep.description
-          )
-        ) AS breakdown
-      FROM event_points ep
-      JOIN wrestlers w ON ep.wrestler_id = w.id
-      WHERE w.team_id = $1
-      GROUP BY ep.event_date, ep.event_name
-      ORDER BY ep.event_date DESC
-    `, [teamId]);
+    const total_wins = parseInt(winsResult.rows[0].count, 10);
 
-    res.json(result.rows);
+    res.json({
+      rank,
+      total_wins,
+      total_points: Number(teamData.total_points)
+    });
   } catch (err) {
-    console.error("Error fetching event points for team:", err);
-    res.status(500).json({ error: "Failed to fetch event points for team" });
+    console.error("Error fetching team rank/wins:", err);
+    res.status(500).json({ error: "Failed to fetch team rank/wins" });
   }
 });
 

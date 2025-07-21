@@ -118,6 +118,7 @@ const TeamRoster = () => {
       {rankInfo && (
         <div className="team-rank-summary">
           <p><strong>Rank:</strong> #{rankInfo.rank}</p>
+          <p><strong>Total Wins:</strong> {rankInfo.total_wins}</p>
           <p><strong>Total Points:</strong> {rankInfo.total_points}</p>
         </div>
       )}
