@@ -717,32 +717,6 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
 
 app.get("/api/teamRank/:teamName", async (req, res) => {
   const { teamName } = req.params;
-  try {
-    const standingsResult = await pool.query(`
-      SELECT team_name, SUM(w.points) AS total_points
-      FROM teams t
-      JOIN wrestlers w ON t.id = w.team_id
-      GROUP BY team_name
-      ORDER BY total_points DESC
-    `);
-
-    const standings = standingsResult.rows;
-    const rank = standings.findIndex(t => t.team_name.toLowerCase() === teamName.toLowerCase()) + 1;
-    const teamData = standings.find(t => t.team_name.toLowerCase() === teamName.toLowerCase());
-
-    if (!teamData) {
-      return res.status(404).json({ error: "Team not found" });
-    }
-
-    res.json({ rank, total_points: Number(teamData.total_points) });
-  } catch (err) {
-    console.error("Error fetching team rank:", err);
-    res.status(500).json({ error: "Failed to fetch team rank" });
-  }
-});
-
-app.get("/api/teamRank/:teamName", async (req, res) => {
-  const { teamName } = req.params;
 
   try {
     // Get total points and rank
