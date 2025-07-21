@@ -7,10 +7,13 @@
   border-radius: 8px;
   overflow: hidden;
   font-size: 0.95rem;
+  table-layout: auto;
 }
 
 .weekly-standings-table thead {
   background-color: #f0f0f0;
+  z-index: 2;
+  position: relative;
 }
 
 .weekly-standings-table th,
@@ -18,6 +21,7 @@
   padding: 0.75rem 1rem;
   text-align: left;
   border-bottom: 1px solid #ddd;
+  white-space: nowrap;
 }
 
 .weekly-standings-table td:nth-child(1),
@@ -31,6 +35,10 @@
   background-color: #f9f9f9;
 }
 
+.weekly-standings-table tbody tr:hover {
+  background-color: #f1f7ff;
+}
+
 .weekly-standings-table tbody tr:first-child {
   font-weight: bold;
   background-color: #fffce6;
@@ -38,13 +46,18 @@
 
 .weekly-standings-table .highlight {
   background-color: #d1ffd1 !important;
+  font-weight: bold;
+  border-left: 3px solid #6abe6b;
+  border-right: 3px solid #6abe6b;
+  color: #1b4d1b;
 }
 
 .frozen-col {
   position: sticky;
   left: 0;
   background-color: #fff;
-  z-index: 1;
+  z-index: 3;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
 }
 
 .scroll-wrapper {
