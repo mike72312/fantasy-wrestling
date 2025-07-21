@@ -770,6 +770,7 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
   const { teamName } = req.params;
 
   try {
+    // Get the team's ID
     const teamResult = await pool.query(
       "SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)",
       [teamName.toLowerCase()]
@@ -781,9 +782,10 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
 
     const teamId = teamResult.rows[0].id;
 
+    // Get total points per event
     const eventTotals = await pool.query(
       `
-      SELECT event_name, event_date, SUM(points) AS total_points
+      SELECT event_name, event_date::date AS event_date, SUM(points) AS total_points
       FROM event_points
       WHERE team_id = $1
       GROUP BY event_name, event_date
@@ -792,9 +794,10 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
       [teamId]
     );
 
+    // Get detailed breakdown
     const breakdowns = await pool.query(
       `
-      SELECT event_name, event_date, wrestler_name, points, description
+      SELECT event_name, event_date::date AS event_date, wrestler_name, points, description
       FROM event_points
       WHERE team_id = $1
       ORDER BY event_date DESC
@@ -802,6 +805,7 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
       [teamId]
     );
 
+    // Map breakdowns by event date
     const breakdownMap = {};
     for (let row of breakdowns.rows) {
       const key = row.event_date.toISOString().split("T")[0];
@@ -809,6 +813,7 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
       breakdownMap[key].push(row);
     }
 
+    // Build final result
     const result = eventTotals.rows.map(evt => {
       const key = evt.event_date.toISOString().split("T")[0];
       return {
@@ -821,7 +826,7 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error("Error fetching team event points:", err);
+    console.error("🔥 Error in /api/eventPoints/team/:teamName", err);
     res.status(500).json({ error: "Failed to fetch team event points" });
   }
 });
