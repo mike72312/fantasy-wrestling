@@ -47,7 +47,16 @@ const StandingsAndTransactions = () => {
 
 
   const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))].sort();
-  const allTeams = [...new Set(weeklyScores.map(row => row.team_name))];
+  // Build a set of all unique team names from weeklyScores
+  const rawTeams = [...new Set(weeklyScores.map(row => row.team_name))];
+
+  // Sort by wins descending, then name ascending
+  const allTeams = rawTeams.sort((a, b) => {
+    const winsA = winMap[a.toLowerCase()] || 0;
+    const winsB = winMap[b.toLowerCase()] || 0;
+    if (winsB !== winsA) return winsB - winsA; // sort by wins descending
+    return a.localeCompare(b); // break tie alphabetically
+  });
 
   const scoresByTeam = {};
   weeklyScores.forEach(row => {
@@ -78,6 +87,7 @@ const StandingsAndTransactions = () => {
         <table className="weekly-standings-table">
           <thead>
             <tr>
+              <th className="frozen-col">Rank</th>
               <th className="frozen-col">Team</th>
               <th className="frozen-col">Wins</th>
               {allWeeks.map((week, idx) => (
@@ -101,12 +111,14 @@ const StandingsAndTransactions = () => {
             </tr>
           </thead>
           <tbody>
-        {allTeams.map((team, i) => {
-          console.log("🧩 Rendering team row:", team, "| wins:", winMap[team.toLowerCase()]);
-          return (
-            <tr key={i}>
-              <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
-              <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
+              {allTeams.map((team, i) => {
+              const rank = i + 1;
+              return (
+              <tr key={i}>
+                <td className="frozen-col">{rank}</td>
+                <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
+                <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
+
               {allWeeks.map((week, j) => {
                 const score = scoresByTeam[team]?.[week] ?? "";
                 const maxScore = Math.max(...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0));
