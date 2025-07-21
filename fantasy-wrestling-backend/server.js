@@ -715,6 +715,31 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
   }
 });
 
+// Get event point summary for a specific team
+app.get("/api/eventPoints/team/:teamName", async (req, res) => {
+  const { teamName } = req.params;
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        ep.event_name,
+        ep.event_date,
+        SUM(ep.points) AS total_points
+      FROM event_points ep
+      JOIN teams t ON ep.team_id = t.id
+      WHERE LOWER(t.team_name) = LOWER($1)
+        AND ep.is_starter = true
+      GROUP BY ep.event_name, ep.event_date
+      ORDER BY ep.event_date DESC
+    `, [teamName]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching team event points:", err);
+    res.status(500).json({ error: "Failed to fetch team event points." });
+  }
+});
+
 app.get("/api/teamRank/:teamName", async (req, res) => {
   const { teamName } = req.params;
 
