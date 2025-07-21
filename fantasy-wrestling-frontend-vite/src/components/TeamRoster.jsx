@@ -10,6 +10,7 @@ const TeamRoster = () => {
   const [rankInfo, setRankInfo] = useState(null);
   const [eventPoints, setEventPoints] = useState([]);
   const [expandedEvents, setExpandedEvents] = useState([]);
+  const [weeklyWins, setWeeklyWins] = useState([]);
   const navigate = useNavigate();
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
 
@@ -28,6 +29,11 @@ const TeamRoster = () => {
       .then(res => res.json())
       .then(setEventPoints)
       .catch(err => console.error("❌ Error loading team event points:", err));
+
+    fetch("https://fantasy-wrestling-backend.onrender.com/api/weeklyWinTally")
+      .then(res => res.json())
+      .then(setWeeklyWins)
+      .catch(err => console.error("❌ Error loading weekly wins:", err));
   }, [teamName]);
 
   const toggleExpand = (date) => {
@@ -111,6 +117,13 @@ const TeamRoster = () => {
   const bench = sortGroup(teamroster.filter((w) => !w.starter));
   const sortedRoster = [...starters, ...bench];
 
+  // Compute total wins from win tally
+  const winMap = {};
+  weeklyWins.forEach(row => {
+    winMap[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
+  });
+  const fallbackWins = winMap[teamName.toLowerCase()] || 0;
+
   return (
     <div className="container">
       <h2>{teamName}'s Roster</h2>
@@ -118,7 +131,7 @@ const TeamRoster = () => {
       {rankInfo && (
         <div className="team-rank-summary">
           <p><strong>Rank:</strong> #{rankInfo.rank}</p>
-          <p><strong>Total Wins:</strong> {rankInfo.total_wins}</p>
+          <p><strong>Total Wins:</strong> {fallbackWins}</p>
           <p><strong>Total Points:</strong> {rankInfo.total_points}</p>
         </div>
       )}
