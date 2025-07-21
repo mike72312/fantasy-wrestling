@@ -761,30 +761,32 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
   const { teamName } = req.params;
 
   try {
-    // Get total points and rank
+    // Get total points for all teams using LEFT JOIN + COALESCE
     const standingsResult = await pool.query(`
-      SELECT team_name, SUM(w.points) AS total_points
+      SELECT t.team_name, COALESCE(SUM(w.points), 0) AS total_points
       FROM teams t
-      JOIN wrestlers w ON t.id = w.team_id
-      GROUP BY team_name
+      LEFT JOIN wrestlers w ON t.id = w.team_id
+      GROUP BY t.team_name
       ORDER BY total_points DESC
     `);
 
     const standings = standingsResult.rows;
-    const rank = standings.findIndex(t => t.team_name.toLowerCase() === teamName.toLowerCase()) + 1;
-    const teamData = standings.find(t => t.team_name.toLowerCase() === teamName.toLowerCase());
+
+    const normalized = teamName.toLowerCase();
+    const teamData = standings.find(t => t.team_name.toLowerCase() === normalized);
+    const rank = standings.findIndex(t => t.team_name.toLowerCase() === normalized) + 1;
 
     if (!teamData) {
       return res.status(404).json({ error: "Team not found" });
     }
 
-    // Get total wins
-      const winsResult = await pool.query(
-        `SELECT COUNT(*) AS count FROM weekly_wins WHERE LOWER(winning_team) = LOWER($1)`,
-        [teamName.toLowerCase()]
-      );
+    // Get total weekly wins for the team
+    const winsResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM weekly_wins WHERE LOWER(winning_team) = LOWER($1)`,
+      [normalized]
+    );
 
-      const total_wins = parseInt(winsResult.rows[0].count, 10);
+    const total_wins = parseInt(winsResult.rows[0].count || "0", 10);
 
     res.json({
       rank,
@@ -792,7 +794,7 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
       total_points: Number(teamData.total_points)
     });
   } catch (err) {
-    console.error("Error fetching team rank/wins:", err);
+    console.error("🔥 Error fetching team rank/wins:", err);
     res.status(500).json({ error: "Failed to fetch team rank/wins" });
   }
 });
