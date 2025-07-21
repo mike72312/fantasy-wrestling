@@ -763,12 +763,12 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
     }
 
     // Get total wins
-    const winsResult = await pool.query(
-      `SELECT COUNT(*) FROM weekly_wins WHERE LOWER(winning_team) = LOWER($1)`,
-      [teamName]
-    );
+      const winsResult = await pool.query(
+        `SELECT COUNT(*) AS count FROM weekly_wins WHERE LOWER(winning_team) = LOWER($1)`,
+        [teamName.toLowerCase()]
+      );
 
-    const total_wins = parseInt(winsResult.rows[0].count, 10);
+      const total_wins = parseInt(winsResult.rows[0].count, 10);
 
     res.json({
       rank,
