@@ -8,7 +8,6 @@ const TeamRoster = () => {
   const [standings, setStandings] = useState([]);
   const [eventPoints, setEventPoints] = useState([]);
   const [expandedEvents, setExpandedEvents] = useState([]);
-  const [weeklyWins, setWeeklyWins] = useState([]);
   const [teamInfo, setTeamInfo] = useState(null);
 
   const userTeam = localStorage.getItem("teamName")?.toLowerCase();
@@ -21,18 +20,17 @@ const TeamRoster = () => {
 
     fetch("https://fantasy-wrestling-backend.onrender.com/api/standings")
       .then(res => res.json())
-      .then(setRankInfo)
-      .catch(err => console.error("❌ Error loading rank:", err));
+      .then(data => {
+        setStandings(data);
+        const found = data.find(t => t.team_name.toLowerCase() === teamName.toLowerCase());
+        setTeamInfo(found);
+      })
+      .catch(err => console.error("❌ Error loading standings:", err));
 
     fetch(`https://fantasy-wrestling-backend.onrender.com/api/eventPoints/team/${teamName}`)
       .then(res => res.json())
       .then(setEventPoints)
       .catch(err => console.error("❌ Error loading team event points:", err));
-
-    fetch("https://fantasy-wrestling-backend.onrender.com/api/weeklyWinTally")
-      .then(res => res.json())
-      .then(setWeeklyWins)
-      .catch(err => console.error("❌ Error loading weekly wins:", err));
   }, [teamName]);
 
   const handleDrop = async (wrestlerName) => {
@@ -96,16 +94,8 @@ const TeamRoster = () => {
     );
   };
 
-  const starters = sortGroup(teamroster.filter((w) => w.starter));
-  const bench = sortGroup(teamroster.filter((w) => !w.starter));
-  const sortedRoster = [...starters, ...bench];
-
-  // Compute total wins from win tally
-  const winMap = {};
-  weeklyWins.forEach(row => {
-    winMap[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
-  });
-  const fallbackWins = winMap[teamName.toLowerCase()] || 0;
+  const starters = teamroster.filter((w) => w.starter);
+  const bench = teamroster.filter((w) => !w.starter);
 
   return (
     <div className="container">
@@ -113,9 +103,9 @@ const TeamRoster = () => {
 
       {teamInfo && (
         <div className="team-rank-summary">
-          <p><strong>Rank:</strong> #{rankInfo.rank}</p>
-          <p><strong>Total Wins:</strong> {fallbackWins}</p>
-          <p><strong>Total Points:</strong> {rankInfo.total_points}</p>
+          <p><strong>Rank:</strong> #{teamInfo.rank}</p>
+          <p><strong>Total Wins:</strong> {teamInfo.total_wins}</p>
+          <p><strong>Total Points:</strong> {teamInfo.total_points}</p>
         </div>
       )}
 
