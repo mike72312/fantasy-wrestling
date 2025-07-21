@@ -94,8 +94,12 @@ const TeamRoster = () => {
     );
   };
 
-  const starters = teamroster.filter((w) => w.starter);
-  const bench = teamroster.filter((w) => !w.starter);
+  const sortGroup = (group) => {
+    return [...group].sort((a, b) => b.points - a.points);
+  };
+
+  const starters = sortGroup(teamroster.filter((w) => w.starter));
+  const bench = sortGroup(teamroster.filter((w) => !w.starter));
 
   return (
     <div className="container">
