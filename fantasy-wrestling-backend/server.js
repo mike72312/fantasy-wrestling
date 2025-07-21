@@ -762,7 +762,7 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
   const normalized = teamName.toLowerCase();
 
   try {
-    // Get total points for each team (including teams with no wrestlers)
+    // Get all teams' total points
     const standingsResult = await pool.query(
       `SELECT t.team_name, COALESCE(SUM(w.points), 0) AS total_points
        FROM teams t
@@ -776,14 +776,23 @@ app.get("/api/teamRank/:teamName", async (req, res) => {
       total_points: parseFloat(row.total_points)
     }));
 
-    // Compute rank
     const teamData = standings.find(t => t.team_name.toLowerCase() === normalized);
     const rank = standings.findIndex(t => t.team_name.toLowerCase() === normalized) + 1;
 
-    // Total wins from weekly_wins table
-    const winsResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM weekly_wins WHERE LOWER(team_name) = LOWER($1)`,
+    // Get the team_id for weekly_wins lookup
+    const teamIdResult = await pool.query(
+      `SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1)`,
       [normalized]
+    );
+    if (teamIdResult.rows.length === 0) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+    const teamId = teamIdResult.rows[0].id;
+
+    // Get total weekly wins by counting rows in weekly_wins where team_id matches
+    const winsResult = await pool.query(
+      `SELECT COUNT(*) AS count FROM weekly_wins WHERE team_id = $1`,
+      [teamId]
     );
     const total_wins = parseInt(winsResult.rows[0].count, 10);
 
