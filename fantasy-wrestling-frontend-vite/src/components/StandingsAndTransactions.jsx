@@ -33,6 +33,19 @@ const StandingsAndTransactions = () => {
       .catch(err => console.error("Error loading trades:", err));
   }, []);
 
+  //delete
+  useEffect(() => {
+  const winMapDebug = {};
+  weeklyWins.forEach(row => {
+    winMapDebug[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
+  });
+
+  console.log("🟡 weeklyWins from backend:", weeklyWins);
+  console.log("🟢 winMap after processing:", winMapDebug);
+  console.log("🔵 allTeams:", allTeams);
+}, [weeklyWins, weeklyScores]);
+
+
   const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))].sort();
   const allTeams = [...new Set(weeklyScores.map(row => row.team_name))];
 
@@ -88,20 +101,23 @@ const StandingsAndTransactions = () => {
             </tr>
           </thead>
           <tbody>
-            {allTeams.map((team, i) => (
-              <tr key={i}>
-                <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
-                <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
-                {allWeeks.map((week, j) => {
-                  const score = scoresByTeam[team]?.[week] ?? "";
-                  const maxScore = Math.max(...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0));
-                  const isWinner = score === maxScore && score !== "";
-                  return (
-                    <td key={j} className={isWinner ? "highlight" : ""}>{score}</td>
-                  );
-                })}
-              </tr>
-            ))}
+        {allTeams.map((team, i) => {
+          console.log("🧩 Rendering team row:", team, "| wins:", winMap[team.toLowerCase()]);
+          return (
+            <tr key={i}>
+              <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
+              <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
+              {allWeeks.map((week, j) => {
+                const score = scoresByTeam[team]?.[week] ?? "";
+                const maxScore = Math.max(...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0));
+                const isWinner = score === maxScore && score !== "";
+                return (
+                  <td key={j} className={isWinner ? "highlight" : ""}>{score}</td>
+                );
+              })}
+            </tr>
+          );
+        })}
           </tbody>
         </table>
       </div>
