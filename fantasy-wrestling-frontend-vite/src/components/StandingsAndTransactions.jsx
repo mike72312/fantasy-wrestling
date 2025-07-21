@@ -72,57 +72,58 @@ const StandingsAndTransactions = () => {
 
   return (
     <div className="container">
-      <h2>Standings (Weekly Wins)</h2>
-      <div className="scroll-wrapper">
-        <table className="weekly-standings-table">
-          <thead>
-            <tr>
-              <th className="frozen-col">Rank</th>
-              <th className="frozen-col">Team</th>
-              <th className="frozen-col">Wins</th>
-              {allWeeks.map((week, idx) => (
-                <th key={idx}>
-                  {(() => {
-                    const start = new Date(week);
-                    const end = new Date(start);
-                    end.setDate(start.getDate() + 6);
-                    return `${start.toLocaleDateString(undefined, {
-                      month: "2-digit",
-                      day: "2-digit",
-                      year: "numeric",
-                  })} – ${end.toLocaleDateString(undefined, {
-                    month: "2-digit",
-                    day: "2-digit",
-                    year: "numeric",
-                   })}`;
-                  })()}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-              {allTeams.map((team, i) => {
-              const rank = i + 1;
+<h2>Standings (Weekly Wins)</h2>
+<div className="scroll-wrapper">
+  <table className="weekly-standings-table">
+    <thead>
+      <tr>
+        <th className="frozen-col">Rank</th>
+        <th className="frozen-col">Team</th>
+        <th className="frozen-col">Wins</th>
+        {allWeeks.map((week, idx) => (
+          <th key={idx}>
+            {(() => {
+              const start = new Date(week);
+              const end = new Date(start);
+              end.setDate(start.getDate() + 6);
+              return `${start.toLocaleDateString(undefined, {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+              })} – ${end.toLocaleDateString(undefined, {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+              })}`;
+            })()}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {allTeams.map((team, i) => {
+        const rank = i + 1;
+        return (
+          <tr key={i}>
+            <td className="frozen-col">{rank}</td>
+            <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
+            <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
+            {allWeeks.map((week, j) => {
+              const score = scoresByTeam[team]?.[week] ?? "";
+              const maxScore = Math.max(
+                ...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0)
+              );
+              const isTopScore = score === maxScore && score !== "";
               return (
-              <tr key={i}>
-                <td className="frozen-col">{rank}</td>
-                <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
-                <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
-
-              {allWeeks.map((week, j) => {
-                const score = scoresByTeam[team]?.[week] ?? "";
-                const maxScore = Math.max(...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0));
-                const isWinner = score === maxScore && score !== "";
-                return (
-                  <td key={j} className={isWinner ? "highlight" : ""}>{score}</td>
-                );
-              })}
-            </tr>
-          );
-        })}
-          </tbody>
-        </table>
-      </div>
+                <td key={j} className={isTopScore ? "highlight" : ""}>{score}</td>
+              );
+            })}
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
 
       <h2>Transactions</h2>
       <div className="transactions-filter">
