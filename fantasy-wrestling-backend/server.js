@@ -626,28 +626,9 @@ app.get("/api/weeklyWinners", async (req, res) => {
 app.get("/api/weeklyWinTally", async (req, res) => {
   try {
     const result = await pool.query(`
-      WITH weekly_scores AS (
-        SELECT
-          ep.team_id,
-          DATE_TRUNC('week', ep.event_date) AS week_start,
-          SUM(ep.points) AS total_points
-        FROM event_points ep
-        WHERE ep.is_starter = true
-        GROUP BY ep.team_id, week_start
-      ),
-      ranked AS (
-        SELECT
-          team_id,
-          week_start,
-          RANK() OVER (PARTITION BY week_start ORDER BY total_points DESC) AS rank
-        FROM weekly_scores
-      )
-      SELECT
-        t.team_name,
-        COUNT(*) AS weekly_wins
-      FROM ranked r
-      JOIN teams t ON t.id = r.team_id
-      WHERE r.rank = 1
+      SELECT t.team_name, COUNT(*) AS weekly_wins
+      FROM weekly_wins ww
+      JOIN teams t ON ww.team_id = t.id
       GROUP BY t.team_name
       ORDER BY weekly_wins DESC;
     `);
@@ -732,18 +713,6 @@ app.post("/api/calculateWeeklyWins", async (req, res) => {
     console.error("Error calculating weekly wins:", err);
     res.status(500).json({ error: "Internal server error" });
   }
-});
-
-//delete
-app.get("/__debug", (req, res) => {
-  res.send("Deployed code is active. Routes include: calculateWeeklyWins");
-});
-app.get("/debug-calculate", (req, res) => {
-  res.send("✅ server.js is running");
-});
-app._router.stack.forEach((r) => {
-  if (r.route && r.route.path)
-    console.log("Loaded route:", r.route.path);
 });
 
 // Start server
