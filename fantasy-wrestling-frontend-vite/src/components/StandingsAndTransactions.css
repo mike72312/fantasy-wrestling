@@ -39,11 +39,6 @@
   background-color: #f1f7ff;
 }
 
-.weekly-standings-table tbody tr:first-child {
-  font-weight: bold;
-  background-color: #fffce6;
-}
-
 .weekly-standings-table .highlight {
   background-color: #d1ffd1 !important;
   font-weight: bold;
