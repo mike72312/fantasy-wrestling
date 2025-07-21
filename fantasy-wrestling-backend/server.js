@@ -759,39 +759,47 @@ app.get("/api/eventPoints/team/:teamName", async (req, res) => {
 
 app.get("/api/teamRank/:teamName", async (req, res) => {
   const { teamName } = req.params;
+  const normalized = teamName.toLowerCase();
 
   try {
-    // Get total points for all teams using LEFT JOIN + COALESCE
-    const standingsResult = await pool.query(`
-      SELECT t.team_name, COALESCE(SUM(w.points), 0) AS total_points
-      FROM teams t
-      LEFT JOIN wrestlers w ON t.id = w.team_id
-      GROUP BY t.team_name
-      ORDER BY total_points DESC
-    `);
+    // Get total points for each team (including teams with no wrestlers)
+    const standingsResult = await pool.query(
+      `SELECT t.team_name, COALESCE(SUM(w.points), 0) AS total_points
+       FROM teams t
+       LEFT JOIN wrestlers w ON t.id = w.team_id
+       GROUP BY t.team_name
+       ORDER BY total_points DESC`
+    );
 
-    const standings = standingsResult.rows;
+    const standings = standingsResult.rows.map(row => ({
+      team_name: row.team_name,
+      total_points: parseFloat(row.total_points)
+    }));
 
-    const normalized = teamName.toLowerCase();
+    // Compute rank
     const teamData = standings.find(t => t.team_name.toLowerCase() === normalized);
     const rank = standings.findIndex(t => t.team_name.toLowerCase() === normalized) + 1;
 
-    if (!teamData) {
-      return res.status(404).json({ error: "Team not found" });
-    }
-
-    // Get total weekly wins for the team
+    // Total wins from weekly_wins table
     const winsResult = await pool.query(
-      `SELECT COUNT(*) AS count FROM weekly_wins WHERE LOWER(WHERE LOWER(team_name) = LOWER($1)) = LOWER($1)`,
+      `SELECT COUNT(*) AS count FROM weekly_wins WHERE LOWER(team_name) = LOWER($1)`,
       [normalized]
     );
+    const total_wins = parseInt(winsResult.rows[0].count, 10);
 
-    const total_wins = parseInt(winsResult.rows[0].count || "0", 10);
+    if (!teamData) {
+      console.warn(`⚠️ Could not find team ${teamName} in standings`);
+      return res.json({
+        rank: null,
+        total_wins,
+        total_points: 0
+      });
+    }
 
     res.json({
       rank,
       total_wins,
-      total_points: Number(teamData.total_points)
+      total_points: teamData.total_points
     });
   } catch (err) {
     console.error("🔥 Error fetching team rank/wins:", err);
