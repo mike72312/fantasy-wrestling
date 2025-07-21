@@ -34,96 +34,101 @@ const StandingsAndTransactions = () => {
   }, []);
 
 
-  const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))]
+const allWeeks = [...new Set(weeklyScores.map(row => row.week_start))]
   .sort((a, b) => new Date(b) - new Date(a)); // sort descending (newest first)
 
-  const scoresByTeam = {};
-  weeklyScores.forEach(row => {
-    if (!scoresByTeam[row.team_name]) scoresByTeam[row.team_name] = {};
-    scoresByTeam[row.team_name][row.week_start] = row.total_points;
-  });
+const scoresByTeam = {};
+weeklyScores.forEach(row => {
+  if (!scoresByTeam[row.team_name]) scoresByTeam[row.team_name] = {};
+  scoresByTeam[row.team_name][row.week_start] = row.total_points;
+});
 
-  const winMap = {};
-  weeklyWins.forEach(row => {
-    winMap[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
-  });
+const winMap = {};
+weeklyWins.forEach(row => {
+  winMap[row.team_name.toLowerCase()] = parseInt(row.weekly_wins);
+});
 
-    // Build a set of all unique team names from weeklyScores
-  const rawTeams = [...new Set(weeklyScores.map(row => row.team_name))];
+// Build a set of all unique team names from weeklyScores
+const rawTeams = [...new Set(weeklyScores.map(row => row.team_name))];
 
-  // Sort by wins descending, then name ascending
-  const allTeams = rawTeams.sort((a, b) => {
-    const winsA = winMap[a.toLowerCase()] || 0;
-    const winsB = winMap[b.toLowerCase()] || 0;
-    if (winsB !== winsA) return winsB - winsA; // sort by wins descending
-    return a.localeCompare(b); // break tie alphabetically
-  });
+// Sort by wins descending, then name ascending
+const allTeams = rawTeams.sort((a, b) => {
+  const winsA = winMap[a.toLowerCase()] || 0;
+  const winsB = winMap[b.toLowerCase()] || 0;
+  if (winsB !== winsA) return winsB - winsA;
+  return a.localeCompare(b);
+});
 
-  const filteredTransactions = transactions.filter(tx =>
-    (!filter || tx.action === filter) &&
-    (!search || tx.wrestler_name?.toLowerCase().includes(search.toLowerCase()))
+// ✅ Precompute max scores for each week
+const maxScoresByWeek = {};
+allWeeks.forEach(week => {
+  maxScoresByWeek[week] = Math.max(
+    ...allTeams.map(team => scoresByTeam[team]?.[week] ?? 0)
   );
+});
 
-  const paginatedTx = filteredTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
-  const paginatedTrades = trades.slice((tradePage - 1) * itemsPerPage, tradePage * itemsPerPage);
+const filteredTransactions = transactions.filter(tx =>
+  (!filter || tx.action === filter) &&
+  (!search || tx.wrestler_name?.toLowerCase().includes(search.toLowerCase()))
+);
 
-  const totalTxPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const totalTradePages = Math.ceil(trades.length / itemsPerPage);
+const paginatedTx = filteredTransactions.slice((txPage - 1) * itemsPerPage, txPage * itemsPerPage);
+const paginatedTrades = trades.slice((tradePage - 1) * itemsPerPage, tradePage * itemsPerPage);
 
-  return (
-    <div className="container">
-<h2>Standings (Weekly Wins)</h2>
-<div className="scroll-wrapper">
-  <table className="weekly-standings-table">
-    <thead>
-      <tr>
-        <th className="frozen-col">Rank</th>
-        <th className="frozen-col">Team</th>
-        <th className="frozen-col">Wins</th>
-        {allWeeks.map((week, idx) => (
-          <th key={idx}>
-            {(() => {
-              const start = new Date(week);
-              const end = new Date(start);
-              end.setDate(start.getDate() + 6);
-              return `${start.toLocaleDateString(undefined, {
-                month: "2-digit",
-                day: "2-digit",
-                year: "numeric",
-              })} – ${end.toLocaleDateString(undefined, {
-                month: "2-digit",
-                day: "2-digit",
-                year: "numeric",
-              })}`;
-            })()}
-          </th>
-        ))}
-      </tr>
-    </thead>
-    <tbody>
-      {allTeams.map((team, i) => {
-        const rank = i + 1;
-        return (
-          <tr key={i}>
-            <td className="frozen-col">{rank}</td>
-            <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
-            <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
-            {allWeeks.map((week, j) => {
-              const score = scoresByTeam[team]?.[week] ?? "";
-              const maxScore = Math.max(
-                ...allTeams.map(t => scoresByTeam[t]?.[week] ?? 0)
-              );
-              const isTopScore = score === maxScore && score !== "";
-              return (
-                <td key={j} className={isTopScore ? "highlight" : ""}>{score}</td>
-              );
-            })}
+const totalTxPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+const totalTradePages = Math.ceil(trades.length / itemsPerPage);
+
+return (
+  <div className="container">
+    <h2>Standings (Weekly Wins)</h2>
+    <div className="scroll-wrapper">
+      <table className="weekly-standings-table">
+        <thead>
+          <tr>
+            <th className="frozen-col">Rank</th>
+            <th className="frozen-col">Team</th>
+            <th className="frozen-col">Wins</th>
+            {allWeeks.map((week, idx) => (
+              <th key={idx}>
+                {(() => {
+                  const start = new Date(week);
+                  const end = new Date(start);
+                  end.setDate(start.getDate() + 6);
+                  return `${start.toLocaleDateString(undefined, {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                  })} – ${end.toLocaleDateString(undefined, {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                  })}`;
+                })()}
+              </th>
+            ))}
           </tr>
-        );
-      })}
-    </tbody>
-  </table>
-</div>
+        </thead>
+        <tbody>
+          {allTeams.map((team, i) => {
+            const rank = i + 1;
+            return (
+              <tr key={i}>
+                <td className="frozen-col">{rank}</td>
+                <td className="frozen-col"><Link to={`/roster/${team}`}>{team}</Link></td>
+                <td className="frozen-col">{winMap[team.toLowerCase()] || 0}</td>
+                {allWeeks.map((week, j) => {
+                  const score = scoresByTeam[team]?.[week] ?? "";
+                  const isTopScore = score === maxScoresByWeek[week] && score !== "";
+                  return (
+                    <td key={j} className={isTopScore ? "highlight" : ""}>{score}</td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
 
       <h2>Transactions</h2>
       <div className="transactions-filter">
